@@ -49,7 +49,7 @@ public:
 
     std::vector<std::string> MidiOut = { MCU_OUT };
     std::vector<std::string> MidiIn = { MCU_IN };
-    std::string P1Port4Out = "MIDIOUT4 (iCON P1-M V1.07 )";
+    std::string P1Port4Out = "MIDIOUT4 (iCON P1-M V1.08 )";
 
     // from LibMain.cpp.  We make these to simplify sending the same midi message to all destinations if we have multiple destinations
     void sendMidiMessage(std::string MidiMessage);
@@ -57,6 +57,8 @@ public:
     void sendMidiMessage(const uint8_t* MidiMessage, int length);
     void SetSurfaceLayout(uint8_t config);
     void sendPort4Message(std::string MidiMessage);
+    std::string SendSoftbuttonCodes(uint8_t first, uint8_t last);
+
 
 
 
@@ -152,11 +154,11 @@ public:
                     }
                     scriptLog("P1M:  Using midi out " + name, 0);
                 }
-                //if (regex_match(name, std::regex("MIDIOUT4 (iCON P1-M.*")))
-                //{
-                //   P1Port4 = name;
-                //    scriptLog("P1M:  Using port 4 " + name, 0);
-                //}
+            }
+            if (regex_match(name, std::regex("MIDIOUT4.*P1-M.*")))
+            {
+                P1Port4Out = name;
+                scriptLog("P1M:  Using port 4 " + name, 0);
             }
         }
         MidiOut = validOutPorts;
@@ -316,7 +318,7 @@ public:
             }
             else if (widgetName == RACKROW_WIDGETNAME || widgetName == VARROW_WIDGETNAME)
             {
-                SetRowAssignments();
+                // SetRowAssignments(); // for P1-M we're put racks and variations / songs and songparts on Fn & View buttons right now
             }
             else
             {
@@ -583,7 +585,7 @@ public:
 
         // scriptLog("Finishing OnRackspaceChanged.", 1);
 
-        Surface.reportWidgetChanges = true;
+        Surface.reportWidgetChanges = Surface.reportWidgetMode;
     }
     
 
@@ -612,7 +614,7 @@ public:
         setActiveBank(FADER_ROW);
         DisplayFaders(Surface.Row[FADER_ROW]);
         // scriptLog("Finishing OnVariationChanged.", 1);
-        Surface.reportWidgetChanges = true;
+        Surface.reportWidgetChanges = Surface.reportWidgetMode;
 
         DisplayModeButtons();
     }

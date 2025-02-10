@@ -76,7 +76,7 @@ void LibMain::DisplaySongs(SurfaceRow Row, bool forcetocurrent)
             if (inSetlistMode() == 1) { DisplayText(x, x % 2, songname, (x==7) ? 6 : 12); }
         }
 
-        // Show the song name on the the OSC display and MCU display if appropriate
+        // Show the song name on the the OSC display
         oscwidget = THIS_PREFIX + (std::string) "_" + Row.WidgetID + "_active_" + std::to_string(x);
         if (widgetExists(oscwidget))
         {

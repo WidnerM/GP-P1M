@@ -73,8 +73,11 @@
 #define FADERS_BANK_UP 7
 #define FADERS_BANK_DOWN 8
 #define SETLIST_TOGGLE 9
+
+// the button order here is { show_faders, show_knobs, show_racks/songs, fader_bank_down, fader_bank_up, 
 #define DEFAULT_COMMAND_BUTTONS {SID_ASSIGNMENT_TRACK, SID_ASSIGNMENT_PAN, SID_ASSIGNMENT_EQ, SID_FADERBANK_GLOBAL, SID_FADERBANK_FLIP, SID_FADERBANK_NEXT_BANK, SID_FADERBANK_PREV_BANK, SID_FADERBANK_NEXT_CH, SID_FADERBANK_PREV_CH, SID_TRANSPORT_RECORD }
 #define ICON_MPLUS_COMMAND_BUTTONS {SID_AUTOMATION_WRITE, SID_AUTOMATION_READ, SID_MARKER, SID_TRANSPORT_FAST_FORWARD, SID_TRANSPORT_REWIND, SID_FADERBANK_NEXT_BANK, SID_FADERBANK_PREV_BANK, SID_FADERBANK_NEXT_CH, SID_FADERBANK_PREV_CH, SID_TRANSPORT_RECORD }
+#define ICON_P1M_COMMAND_BUTTONS {SID_AUTOMATION_WRITE, SID_AUTOMATION_READ, SID_MARKER, SID_FADERBANK_NEXT_CH, SID_FADERBANK_PREV_CH, SID_TRANSPORT_FAST_FORWARD, SID_TRANSPORT_REWIND, SID_FADERBANK_NEXT_BANK, SID_FADERBANK_PREV_BANK, SID_TRANSPORT_RECORD }
 #define XTOUCH_COMMAND_BUTTONS {SID_ASSIGNMENT_TRACK, SID_ASSIGNMENT_PAN, SID_ASSIGNMENT_EQ, SID_TRANSPORT_FAST_FORWARD, SID_TRANSPORT_REWIND, SID_FADERBANK_NEXT_BANK, SID_FADERBANK_PREV_BANK, SID_FADERBANK_NEXT_CH, SID_FADERBANK_PREV_CH, SID_TRANSPORT_RECORD }
 
 // The SurfaceWidget class is the conduit used for translating GP widget information and changes to control surface displayscontroller_widgettype_bankname_position
@@ -218,13 +221,30 @@ public:
 	std::string Label = "               ";
 };
 
+class P1SoftButtonEvent
+{
+public:
+	uint8_t event;
+	uint8_t repeat;
+	uint8_t channel;
+	uint8_t note;
+	uint8_t pushval;
+	uint8_t releaseval;
+	uint8_t unused1;
+	uint8_t unused2;
+};
+
 class SurfaceClass
 {
 public:
 	SurfaceRow Row[9];
 	uint8_t ButtonRows = 7;
 	std::string IgnoreWidget = "";
-	bool reportWidgetChanges = true;
+	bool reportWidgetChanges = true; // for MCUs indicates whether we dedicate a display line to showing value of any touched widget
+	bool reportWidgetMode = false; // for P1-M we're turning that entirely off but keeping the MCU code generally intact
+	bool P1MType = true;
+	std::string P1MText = "                                                                                                               ";
+	P1Softbutton P1SoftbuttonArray[80];
 
 	uint8_t TextDisplay = SHOW_FADERS;
 	int FirstShownSong = 0;
@@ -233,12 +253,12 @@ public:
 	uint8_t ButtonLayout = 0;
 	uint8_t RackRow = 255;
 	uint8_t VarRow = 255;
-	bool P1MType = true;
-	std::string P1MText = "                                                                                                               ";
-	P1Softbutton P1SoftbuttonArray[80];
 
 	bool Initialize()
 	{
+		// defines up the structure of the control surface
+		// controls exist in "rows", such as knobs, faders, record button, solo button, etc.
+		// we define 9 rows of these, which map to the widget name structure (e.g., mc_solo_bank_position)
 		int x;
 		std::string row_prefixes[] = ROW_PREFIX_ARRAY;
 		std::string row_tags[] = TAG_ARRAY;
@@ -265,7 +285,7 @@ public:
 		// Row[3].Showing = SHOW_SONGS;
 		// Row[2].Showing = SHOW_SONGPARTS;
 
-		// P1-M Softbutton array initialization
+		// P1-M Softbutton array initialization - label can be up to 14 characters (2 lines of 7)
 		for (x = 0; x < 80; x++)
 		{
 			P1SoftbuttonArray[x].Label = "Soft " + std::to_string(x+1);

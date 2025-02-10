@@ -82,6 +82,7 @@ void LibMain::InvokeMenu(int index)
             // setWidgetBounds("BoundsWidget", 10, 10, 100, 100);
             InitializeSoftbuttons();
             SendSoftbuttons(1, 80);
+            SendSoftbuttonCodes(1, 80);
             break;
 
         default:

@@ -24,6 +24,8 @@ void LibMain::ClearMCUDisplay()
     // scriptLog("MCU clear display", 1);
     sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(MCU_CLEAR_BOT)));
     sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(MCU_CLEAR_TOP)));
+    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(P1M_CLEAR_BOT)));
+    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(P1M_CLEAR_TOP)));
 }
 
 void LibMain::CleanMCU()
@@ -51,21 +53,27 @@ void LibMain::CleanMCU()
 
 }
 
-// Transmits sysex midi data to display a message on the MCU text display
+// Transmits sysex midi data to display a message on the P1-M text display
 void LibMain::DisplayText(uint8_t column, uint8_t row, std::string text, uint8_t maxlength)
 {
     std::string hexmessage, subtext, binmessage;
 
-    // Could probably handle this better...  Adding blanks to the text to display so we're guaranteed to clear whatever's there, then just use front 'maxlength' chars
-    if (column < 8) {
+    if (row < 2) // row zero and 1 are for knob display, show label row 0, value row 1
+    {
+        if (column < 8) {
+            // Could  handle this better...  Adding blanks to the text to display so we're guaranteed to clear whatever's there, then just use front 'maxlength' chars
+            subtext = cleanSysex(text);
+            subtext = subtext.substr(0, maxlength) + "                                                                ";
+            hexmessage = MCU_TEXT_HDR + gigperformer::sdk::GPUtils::intToHex(row * 0x38 + column * 7) + textToHexString(subtext.substr(0, (maxlength % 7 == 0) ? maxlength : maxlength + 7 - maxlength % 7)) + (std::string)" f7";
+            binmessage = gigperformer::sdk::GPUtils::hex2binaryString(hexmessage);
+            sendMidiMessage(binmessage);
+        }
 
-        subtext = cleanSysex(text);
-        subtext = subtext.substr(0, maxlength) + "                                                                ";
-        hexmessage = MCU_TEXT_HDR + gigperformer::sdk::GPUtils::intToHex(row * 0x38 + column * 7) + textToHexString(subtext.substr(0, (maxlength % 7 == 0 ) ? maxlength : maxlength + 7 - maxlength % 7)) + (std::string)" f7";
-        binmessage = gigperformer::sdk::GPUtils::hex2binaryString(hexmessage);
-        sendMidiMessage(binmessage);
     }
-    DisplayP1MText(column, row, text, maxlength);
+    else if (row < 4)
+    {
+        DisplayP1MText(column, row, text, maxlength); // move that routine into this one
+    }
 }
 
 // Displays a string on the upper right of the MCU text display
@@ -79,6 +87,8 @@ void LibMain::DisplayBankInfo(std::string text)
     sendMidiMessage(binmessage);
 }
 
+// as of Feb 9, 2025 the P1-M/Nano firmware doesn't do anything with this,
+// but we still do it to adhere to MCU protocol
 uint8_t LibMain::KnobDotValue(uint8_t column)
 {
     uint8_t dotvalue = 0;
@@ -92,6 +102,8 @@ uint8_t LibMain::KnobDotValue(uint8_t column)
     return dotvalue;
 }
 
+// MCU protocol only allows for 12 positions for knobring display
+// this converts a widget value into a 1-12 value
 uint8_t LibMain::KnobRingValue(uint8_t column)
 {
     uint8_t ringvalue = 0;
@@ -105,7 +117,9 @@ uint8_t LibMain::KnobRingValue(uint8_t column)
     return ringvalue;
 }
 
-// Show value of a widget on it's linked control surface item
+// Show value of a widget on it's linked control surface physical item
+// e.g., moves a fader, lights buttons, shows knob position
+// this does not do anything with the text displays
 void LibMain::DisplayWidgetValue(SurfaceRow Row, uint8_t column, double value)
 {
     uint8_t MidiMessage[3];
@@ -139,6 +153,7 @@ void LibMain::DisplayWidgetValue(SurfaceRow Row, uint8_t column, double value)
 }
 
 // light up or turn off a button on the control surface
+// this is currently only used for indicating what "control mode" we're in for different MCU clone types
 void LibMain::DisplayButton(uint8_t button, uint8_t value)
 {
     sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(button, (value == 0) ? BUTTON_OFF : BUTTON_LIT, 0));
@@ -197,6 +212,8 @@ void LibMain::SetRowAssignments()
     // scriptLog("VarRow: " + std::to_string(Surface.VarRow), 1);
 }
 
+// For "bank switching" between different fader/knob/button banks, this is for keeping the
+// knobs and faders on the same bank_name if the new fader/knob bank shares the same name
 void LibMain::SyncBankIDs(uint8_t syncrow)
 {
     if (Surface.Row[syncrow].BankValid()) {
@@ -218,10 +235,10 @@ void LibMain::Notify(std::string text)
 /// Displays text on the top left portion of the MCU display using a MIDI sysex message.  Unsafe chars in the text will be deleted before sending.
 /// </summary>
 /// <param name="column">unused, deprecated</param>
-/// <param name="label">text, automatically trimmed to 26 characters</param>
+/// <param name="label">text, automatically trimmed to 28 characters</param>
 void LibMain::DisplayTopLeft(uint8_t column, const std::string label)
 {
-    if (column <= 8) { DisplayText(0, 0, label, 26); }
+    if (column <= 8) { DisplayText(0, 0, label, 28); }
 }
 
 void LibMain::DisplayControlLabel(uint8_t column, const std::string label)

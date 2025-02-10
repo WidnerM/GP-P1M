@@ -78,7 +78,7 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
         {
             Surface.reportWidgetChanges = false;
             inSetlistMode() ? switchToPanelView() : switchToSetlistView();
-            Surface.reportWidgetChanges = true;
+            Surface.reportWidgetChanges = Surface.reportWidgetMode;
         }
         else if (button == Surface.CommandButtons[FADERS_SELECT]) // show faders
         {
@@ -119,7 +119,7 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
                     { 
                         Surface.reportWidgetChanges = false;
                         switchToSong(songnumber, 0); 
-                        Surface.reportWidgetChanges = true;
+                        Surface.reportWidgetChanges = Surface.reportWidgetMode;
                     }
                 }
                 else if (Surface.Row[x].Showing == SHOW_SONGPARTS)
@@ -129,7 +129,7 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
                     { 
                         Surface.reportWidgetChanges = false;
                         switchToSongPart(songnumber);
-                        Surface.reportWidgetChanges = true;
+                        Surface.reportWidgetChanges = Surface.reportWidgetMode;
                     }
                 }
                 else if (Surface.Row[x].Showing == SHOW_RACKSPACES) // if the Row is in Rackspace mode, process it as a Rackspace select
@@ -140,7 +140,7 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
                         // switchToRackspace(songnumber, 0);
                         Surface.reportWidgetChanges = false;
                         switchToRackspaceName(getRackspaceName(songnumber), "");
-                        Surface.reportWidgetChanges = true;
+                        Surface.reportWidgetChanges = Surface.reportWidgetMode;
                     }
                 }
                 else if (Surface.Row[x].Showing == SHOW_VARIATIONS)
@@ -151,7 +151,7 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
                         Surface.reportWidgetChanges = false;
                         switchToRackspace(getCurrentRackspaceIndex(), songnumber);
                         DisplayRow(Surface.Row[x], true);
-                        Surface.reportWidgetChanges = true;
+                        Surface.reportWidgetChanges = Surface.reportWidgetMode;
                     }
                 }
                 else if (Surface.Row[x].BankValid()) // make sure ActiveBank is a valid bank to avoid exceptions
