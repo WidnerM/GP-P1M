@@ -182,7 +182,7 @@ void LibMain::DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint
     std::string hexmessage, subtext, binmessage;
 
     // Could probably handle this better...  Adding blanks to the text to display so we're guaranteed to clear whatever's there, then just use front 'maxlength' chars
-    if (column < 8) {
+    if (column < 8 && row < 4) {
 
         // If the bottom two lines of text worked as they should the below would work. But that butchers the spacing of the text
         /* subtext = cleanSysex(text);
@@ -195,7 +195,7 @@ void LibMain::DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint
         // splice in our changes then write the whole thing to the P1-M
         subtext = cleanSysex(text);
         subtext = subtext.substr(0, maxlength) + "                                                                                                               ";
-        int insertpoint = (row) * 0x38 + 7 * column;
+        int insertpoint = (row-2) * 0x38 + 7 * column;
 
 
         Surface.P1MText.replace(insertpoint, maxlength, subtext.substr(0, (maxlength % 7 == 0) ? maxlength : maxlength + 7 - maxlength % 7));
@@ -208,8 +208,6 @@ void LibMain::DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint
 
         scriptLog("P1M: col: " + std::to_string(column) + " row: " + std::to_string(row) + " max: " + std::to_string(maxlength) + text, 0);
         scriptLog("P1M: display " + Surface.P1MText, 0);
-
-
         
     }
 }

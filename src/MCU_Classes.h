@@ -103,6 +103,14 @@ public:
 
 	int resolution = 1000;
 
+	bool IsFader()
+	{
+		return (WidgetID == FADER_TAG);
+	}
+	bool IsKnob()
+	{
+		return (WidgetID == KNOB_TAG);
+	}
 };
 
 class SurfaceRow

@@ -64,7 +64,7 @@ public:
 
     // from Display.cpp - functions for displaying things on the control surface (fader positions, LCD, button lights, etc.)
     void InitializeMCU();
-    void ClearMCUDisplay();
+    void ClearMCUDisplay(uint8_t row = 0);
     void CleanMCU();
     void Notify(std::string text);
     void DisplayText(uint8_t column, uint8_t row, std::string text, uint8_t maxlength);
@@ -331,8 +331,9 @@ public:
 //                        setWidgetValue(Surface.Row[widget.RowNumber].WidgetPrefix + "_active_" + widget.Column, newValue);
                         setWidgetValue( widget.SurfacePrefix + "_" + widget.WidgetID + "_active_" + std::to_string(widget.Column), newValue);
                         DisplayWidgetValue(Surface.Row[widget.RowNumber], widget.Column, newValue);
-
-                        if (Surface.reportWidgetChanges == true && Surface.TextDisplay != SHOW_SONGS)  // show changes on upper left display if not showing racks/songs
+                        if (widget.WidgetID == FADER_TAG) { DisplayText(widget.Column, 2, widget.TextValue, 7); }
+                        if (widget.WidgetID == KNOB_TAG) { DisplayText(widget.Column, 1, widget.TextValue, 7); }
+                        if (Surface.reportWidgetChanges == true && Surface.TextDisplay != SHOW_SONGS && !Surface.P1MType)  // show changes on upper left display if not showing racks/songs
                         {
                             DisplayTopLeft(widget.Column, widget.Caption + " : " + widget.TextValue);
                         }

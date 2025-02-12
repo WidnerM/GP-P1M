@@ -19,13 +19,17 @@ void LibMain::InitializeMCU()
     CleanMCU();
 }
 
-void LibMain::ClearMCUDisplay()
+void LibMain::ClearMCUDisplay(uint8_t row)
 {
     // scriptLog("MCU clear display", 1);
-    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(MCU_CLEAR_BOT)));
-    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(MCU_CLEAR_TOP)));
-    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(P1M_CLEAR_BOT)));
-    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(P1M_CLEAR_TOP)));
+    if (row < 2) {
+        sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(MCU_CLEAR_BOT)));
+        sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(MCU_CLEAR_TOP)));
+    }
+    else if (row < 4) {
+        sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(P1M_CLEAR_BOT)));
+        sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(P1M_CLEAR_TOP)));
+    }
 }
 
 void LibMain::CleanMCU()
@@ -33,7 +37,8 @@ void LibMain::CleanMCU()
     int x;
 
     // clear display
-    ClearMCUDisplay();
+    ClearMCUDisplay(0);
+    ClearMCUDisplay(2);
 
     // shut off all leds
     for (x = 0; x <= 0x76; x++) {
@@ -81,10 +86,13 @@ void LibMain::DisplayBankInfo(std::string text)
 {
     std::string hexmessage, subtext, binmessage;
 
-    subtext = "                                                                " + cleanSysex(text);
-    hexmessage = MCU_TEXT_HDR + (std::string) "1C" + textToHexString(subtext.substr(subtext.length()-28, subtext.length())) + (std::string)" f7";
-    binmessage = gigperformer::sdk::GPUtils::hex2binaryString(hexmessage);
-    sendMidiMessage(binmessage);
+    if (!Surface.P1MType)
+    {
+        subtext = "                                                                " + cleanSysex(text);
+        hexmessage = MCU_TEXT_HDR + (std::string)"1C" + textToHexString(subtext.substr(subtext.length() - 28, subtext.length())) + (std::string)" f7";
+        binmessage = gigperformer::sdk::GPUtils::hex2binaryString(hexmessage);
+        sendMidiMessage(binmessage);
+    }
 }
 
 // as of Feb 9, 2025 the P1-M/Nano firmware doesn't do anything with this,
@@ -238,7 +246,7 @@ void LibMain::Notify(std::string text)
 /// <param name="label">text, automatically trimmed to 28 characters</param>
 void LibMain::DisplayTopLeft(uint8_t column, const std::string label)
 {
-    if (column <= 8) { DisplayText(0, 0, label, 28); }
+    if (column <= 8 && !Surface.P1MType) { DisplayText(0, 0, label, 28); }
 }
 
 void LibMain::DisplayControlLabel(uint8_t column, const std::string label)
@@ -324,12 +332,17 @@ void LibMain::DisplayFaders(SurfaceRow Row)
                 // Show = false;
             }
 
-            if ((Row.Type == KNOB_TYPE && Surface.TextDisplay == SHOW_KNOBS) || (Row.Type == FADER_TYPE && Surface.TextDisplay == SHOW_FADERS))
-            {
-                DisplayControlLabel((uint8_t)x, Label); // show the label on the MCU LCD by sending midi
+            if (Surface.P1MType) {
+                DisplayWidgetValue(Row, (uint8_t)x, Value); // move fader or show knob position
+                if (Row.Type == FADER_TYPE || Row.Type == KNOB_TYPE) {
+                    DisplayText(x, Row.Type == FADER_TYPE ? 3 : 0, Label, 7);
+                    DisplayText(x, Row.Type == FADER_TYPE ? 2 : 1, TextValue, 7);
+                }
             }
-            if (Row.Type == FADER_TYPE || Row.Type == KNOB_TYPE) { DisplayWidgetValue(Row, (uint8_t)x, Value); }
-
+            else if ((Row.Type == KNOB_TYPE && Surface.TextDisplay == SHOW_KNOBS) || (Row.Type == FADER_TYPE && Surface.TextDisplay == SHOW_FADERS))
+            {
+                DisplayText(x, 1, Label, 7); // show the label on the MCU LCD by sending midi
+            }
         }
         else {
             Label = " ";
