@@ -54,7 +54,7 @@ std::string LibMain::SendSoftbuttons(uint8_t first, uint8_t last)
             scriptLog(hexsysex, 0);
             sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(hexsysex));
         }
-        else scriptLog("P1M: line " + std::to_string(lines) + " skipped", 0);
+        // else scriptLog("P1M: line " + std::to_string(lines) + " skipped", 0);
 
     }
     return "xxx";
@@ -90,7 +90,7 @@ P1Softbutton LibMain::formatSoftbuttonText(std::string label)
     return Softbutton;
 }
 
-// InitializeSoftbuttons() just initializes the data structure that holds formatted Softbutton data in the Surface class
+// InitializeSoftbuttons() initializes the data structure that holds formatted Softbutton data in the Surface class
 void LibMain::InitializeSoftbuttons()
 {
     std::string label;
@@ -141,6 +141,11 @@ std::string LibMain::SendSoftbuttonCodes(uint8_t first, uint8_t last)
         sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(hexsysex));
     }
     // send page 9 of keydefs or the P1-M ignores everything above
+    // for now I am sending everything because it seems the stuff on pages 4-8 gets corrupted now
+    // and then, most likely as a result of periodically overflowing the buffers for the softbutton
+    // display once in a while.  Once these are corrupted even a power cycle doesn't fix them.
+    // These need to be set properly anyway for the extension to work, so might as well write them
+    // all during the initialization routine.
     sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(P1M_KEYDEF_PAGE4));
     sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(P1M_KEYDEF_PAGE5));
     sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(P1M_KEYDEF_PAGE6));
@@ -150,8 +155,6 @@ std::string LibMain::SendSoftbuttonCodes(uint8_t first, uint8_t last)
     return "xxx";
 }
 
-
-// set up basic softbutton printing routine
 
 
 void LibMain::DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint8_t maxlength)
