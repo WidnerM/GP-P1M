@@ -5,15 +5,19 @@ cmake_minimum_required(VERSION 3.21)
 set(PROJECT_NAME "GP-P1M") # Change this to your liking
 project(${PROJECT_NAME} VERSION 1.0)
 
-# Import the SDK
-include(FetchContent)
-FetchContent_Declare(
-  gp-sdk
-  GIT_REPOSITORY https://github.com/gigperformer/gp-sdk.git
-  GIT_TAG 756ecd249f1ff00f3d3a5955769408f74c9fa453 # SDK 60
 
-)
-FetchContent_MakeAvailable(gp-sdk)
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/dependencies.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/cmake/juce-shared-library.cmake")
+
+# Import the SDK
+# include(FetchContent)
+# FetchContent_Declare(
+#  gp-sdk
+#  GIT_REPOSITORY https://github.com/gigperformer/gp-sdk.git
+#  GIT_TAG 756ecd249f1ff00f3d3a5955769408f74c9fa453 # SDK 60
+# 
+# )
+# FetchContent_MakeAvailable(gp-sdk)
 
 # Define our library including sources, include directories and dependencies
 add_library(${PROJECT_NAME} SHARED)
@@ -24,9 +28,11 @@ target_sources(
                           "${CMAKE_CURRENT_LIST_DIR}/src/P1Routines.cpp"
                           "${CMAKE_CURRENT_LIST_DIR}/src/Inputs.cpp"
                           "${CMAKE_CURRENT_LIST_DIR}/src/Songlist.cpp"
-                          "${CMAKE_CURRENT_LIST_DIR}/src/General_Utils.cpp")
+                          "${CMAKE_CURRENT_LIST_DIR}/src/General_Utils.cpp"
+                          "${CMAKE_CURRENT_LIST_DIR}/src/DelayCallback.cpp")
 
-target_link_libraries(${PROJECT_NAME} PRIVATE gigperformer::sdk::cpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE gigperformer::sdk::cpp
+                                    juce::juce_gui_basics juce::juce_core juce::juce_events juce::juce_graphics)
 
 target_include_directories(${PROJECT_NAME}
                            PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

@@ -6,52 +6,15 @@
 #include <format>
 #include "LibMain.h"
 
-
-std::string centerText(std::string text, int maxAmount = 8)
-{
-    return std::format("{:^8}", text);
-}
-
-// basic code to format the two-line softbutton display
-// could improve it by deciding where to line break if > 8 characters
-P1Softbutton LibMain::formatSoftbuttonText(std::string label)
-{
-    P1Softbutton Softbutton;
-    std::string newlabel = cleanSysex(label);
-
-    if (newlabel.length() < 8)
-    {
-        Softbutton.Format = newlabel.length() % 2 ? 1 : 3; // even or odd number of characters, centered in display
-        Softbutton.Label = centerText(newlabel) + centerText("  ");
-    }
-    else if (newlabel.length() == 8)
-    {
-        Softbutton.Format = 2; // full 8 character line, centered in display
-        Softbutton.Label = centerText(newlabel) + centerText("  ");
-    }
-    else
-    {
-        Softbutton.Format = 7;
-        Softbutton.Label = centerText(newlabel.substr(0, 8)) + centerText(newlabel.substr(8, 8));
-    }
-    return Softbutton;
-}
-
-// InitializeSoftbuttons() just initializes the data structure that holds formatted Softbutton data in the Surface class
-void LibMain::InitializeSoftbuttons()
-{
-    std::string label;
-
-    for (int x = 0; x < 80; x++)
-    {
-        label = "Soft " + std::to_string(x + 1);
-
-        Surface.P1SoftbuttonArray[x] = formatSoftbuttonText(label);
-    }
-}
-
 // Send the softbutton labels to the P1-M
-// currently sends the entire five pages of buttons, although would like to narrow it down to range first-last
+// the P1-M protocol requires sending this in 180 byte chunks (containing 10 softbutton labels each)
+// where the last chunk (of 8 total) is mandatory but all preceding chunks (i.e., 1-7) are optional.
+// The first-last parameters are not presently used because it hasn't
+// proven helpful in working around the "challenge" that there seems to be a timing window in the P1-M
+// where successive writes must be spaced out in time.  Specifically, the first-last parameters are
+// ignored here because we compare every chunk to the last sent version of that chunk and only send updated ones.
+// That has not been sufficient to address the issue, so my next effort will be to try putting this routine
+// on a timer.
 std::string LibMain::SendSoftbuttons(uint8_t first, uint8_t last)
 {
     std::string sysex, hexsysex;
@@ -95,6 +58,49 @@ std::string LibMain::SendSoftbuttons(uint8_t first, uint8_t last)
 
     }
     return "xxx";
+}
+
+std::string centerText(std::string text, int maxAmount = 8)
+{
+    return std::format("{:^8}", text);
+}
+
+// basic code to format the two-line softbutton display
+// could improve it by deciding where to line break if > 8 characters
+P1Softbutton LibMain::formatSoftbuttonText(std::string label)
+{
+    P1Softbutton Softbutton;
+    std::string newlabel = cleanSysex(label);
+
+    if (newlabel.length() < 8)
+    {
+        Softbutton.Format = newlabel.length() % 2 ? 1 : 3; // even or odd number of characters, centered in display
+        Softbutton.Label = centerText(newlabel) + centerText("  ");
+    }
+    else if (newlabel.length() == 8)
+    {
+        Softbutton.Format = 2; // full 8 character line, centered in display
+        Softbutton.Label = centerText(newlabel) + centerText("  ");
+    }
+    else
+    {
+        Softbutton.Format = 7;
+        Softbutton.Label = centerText(newlabel.substr(0, 8)) + centerText(newlabel.substr(8, 8));
+    }
+    return Softbutton;
+}
+
+// InitializeSoftbuttons() just initializes the data structure that holds formatted Softbutton data in the Surface class
+void LibMain::InitializeSoftbuttons()
+{
+    std::string label;
+
+    for (int x = 0; x < 80; x++)
+    {
+        label = "Soft " + std::to_string(x + 1);
+
+        Surface.P1SoftbuttonArray[x] = formatSoftbuttonText(label);
+    }
 }
 
 // Sends the P1-M port 4 sysex to define the softbutton control codes
