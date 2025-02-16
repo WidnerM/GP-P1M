@@ -17,6 +17,11 @@ void LibMain::InitializeMCU()
 
     // clear display
     CleanMCU();
+    if (Surface.P1MType) {
+        InitializeSoftbuttons();
+        SendSoftbuttons(1, 80);
+        SendSoftbuttonCodes(1, 80);
+    }
 }
 
 void LibMain::ClearMCUDisplay(uint8_t row)
@@ -26,7 +31,7 @@ void LibMain::ClearMCUDisplay(uint8_t row)
         sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(MCU_CLEAR_BOT)));
         sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(MCU_CLEAR_TOP)));
     }
-    else if (row < 4) {
+    else {
         sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(P1M_CLEAR_BOT)));
         sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(P1M_CLEAR_TOP)));
     }
@@ -39,6 +44,8 @@ void LibMain::CleanMCU()
     // clear display
     ClearMCUDisplay(0);
     ClearMCUDisplay(2);
+
+    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(P1M_COLORBAR_CLEAR)));
 
     // shut off all leds
     for (x = 0; x <= 0x76; x++) {
@@ -73,7 +80,6 @@ void LibMain::DisplayText(uint8_t column, uint8_t row, std::string text, uint8_t
             binmessage = gigperformer::sdk::GPUtils::hex2binaryString(hexmessage);
             sendMidiMessage(binmessage);
         }
-
     }
     else if (row < 4)
     {
@@ -261,11 +267,10 @@ void LibMain::DisplayFaders(SurfaceRow Row)
 {
     std::string widgetname, oscwidget, oscname;
     std::string Caption, Label, Extras, TextValue;
+    int Color;
     SurfaceWidget widget;
     double Value = 0, oldvalue;
     std::string hexmessage, subtext, binmessage;
-    uint8_t upcolor = 0;
-    uint8_t downcolor = 0;
     int x;
 
 
@@ -323,6 +328,8 @@ void LibMain::DisplayFaders(SurfaceRow Row)
                 Value = widget.Value;
                 Label = widget.Caption;
                 TextValue = widget.TextValue;
+                Color = widget.RgbLitColor;
+                if (Row.Type == FADER_TYPE) Surface.P1MColorbars[x] = Color;
             }
             else  // we end up here if the widget doesn't exist, so then we set the whole thing blank
             {
@@ -359,6 +366,7 @@ void LibMain::DisplayFaders(SurfaceRow Row)
             setWidgetValue(oscwidget, Value);
         }
     }
+    if (Row.Type == FADER_TYPE) DisplayP1MColorbars();
 }
 
 
@@ -495,11 +503,50 @@ SurfaceWidget LibMain::PopulateWidget(std::string widgetname)
                             pcaption = getWidgetCaption(pwidgetname);
                             if (!pcaption.empty())
                             {
-                                size_t pos = pcaption.find("_");
-                                widget.Caption = pcaption.substr(0, pos);
+                                std::vector< std::string> name_segments = ParseWidgetName(pcaption, '_');
+                                (name_segments.size() >= 1) ? widget.Caption = name_segments[0] : widget.Caption = "";
+
+                                if ((widget.WidgetID == FUNCTION_TAG || widget.WidgetID == VIEW_TAG) && name_segments.size() >= 3)
+                                {
+                                    if (widget.Value > 0)
+                                        widget.TextValue = name_segments[2];
+                                    else
+                                        widget.TextValue = name_segments[1];
+                                }
+
+                                // size_t pos = pcaption.find("_");
+                                // widget.Caption = pcaption.substr(0, pos);
                             }
                             widget.RgbLitColor = getWidgetFillColor(pwidgetname);  // for knobs LitColor is the knob color, DimColor is top bar color
                             widget.RgbDimColor = getWidgetOutlineColor(pwidgetname);
+                        }
+                        else
+                        {
+                            // in the absense of a widget specific property widget we'll try the bank p widget, eg sl_kp_bank
+                            pwidgetname = widget.SurfacePrefix + "_" + widget.WidgetID + "p_" + widget.BankID;
+                            if (widgetExists(pwidgetname))
+                            {
+                                // widget.Caption = getWidgetCaption(pwidgetname);
+                                widget.RgbLitColor = getWidgetFillColor(pwidgetname);
+                                widget.RgbDimColor = getWidgetOutlineColor(pwidgetname);
+                            }
+                            else
+                            {
+                                // if no individual or bank property widget exists we'll try the bank indicator widget
+                                pwidgetname = widget.SurfacePrefix + "_" + widget.WidgetID + "_" + widget.BankID + "_i";
+                                if (widgetExists(pwidgetname))
+                                {
+                                    // widget.Caption = getWidgetCaption(pwidgetname);
+                                    widget.RgbLitColor = getWidgetFillColor(pwidgetname);
+                                    widget.RgbDimColor = getWidgetOutlineColor(pwidgetname);
+                                }
+                                else
+                                {
+                                    // if none of them exist we'll use a green color
+                                    widget.RgbLitColor = 0x00A000;
+                                    widget.RgbDimColor = 0x003000;
+                                }
+                            }
                         }
                     }
                 }
@@ -511,4 +558,16 @@ SurfaceWidget LibMain::PopulateWidget(std::string widgetname)
         widget.Validated = false;
     }
     return widget;
+}
+
+// converts a GP widget color integer to a hex string for SL midi
+std::string LibMain::GPColorToSLColorHex(int color)
+{
+    std::string hexstring;
+
+    hexstring = gigperformer::sdk::GPUtils::intToHex((uint8_t)(color >> 17 & 0x7f)) +
+        gigperformer::sdk::GPUtils::intToHex((uint8_t)(color >> 9 & 0x7f)) +
+        gigperformer::sdk::GPUtils::intToHex((uint8_t)(color >> 1 & 0x7f));
+
+    return hexstring;
 }

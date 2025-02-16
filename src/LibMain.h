@@ -55,11 +55,11 @@ public:
     void sendMidiMessage(std::string MidiMessage);
     void sendMidiMessage(gigperformer::sdk::GPMidiMessage MidiMessage);
     void sendMidiMessage(const uint8_t* MidiMessage, int length);
+//    void sendHexMidiMessage(std::string MidiMessage);
+
     void SetSurfaceLayout(uint8_t config);
     void sendPort4Message(std::string MidiMessage);
     std::string SendSoftbuttonCodes(uint8_t first, uint8_t last);
-
-
 
 
     // from Display.cpp - functions for displaying things on the control surface (fader positions, LCD, button lights, etc.)
@@ -80,17 +80,17 @@ public:
     uint8_t KnobDotValue(uint8_t column);
     uint8_t KnobRingValue(uint8_t column);
     void ClearRow(SurfaceRow Row);
+    std::string GPColorToSLColorHex(int color);
 
     SurfaceWidget PopulateWidget(std::string widgetname);
     
 
     // from P1Routines.cpp
-    void InitializeP1M();
     void InitializeSoftbuttons();
     std::string SendSoftbuttons(uint8_t first, uint8_t last);
-    void ClearP1MDisplay();
-    void CleanP1M();
     void DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint8_t maxlength);
+    void DisplayP1MColorbars();
+    P1Softbutton formatSoftbuttonText(std::string label);
 
 
     // from Inputs.cpp
@@ -389,8 +389,8 @@ public:
     {
         uint8_t row;
         
-        // scriptLog("MC: Song changed to number " + std::to_string(newIndex), 1);
-        // scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
+        scriptLog("MC: Song changed to number " + std::to_string(newIndex), 1);
+        scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
         
         for (row = 0; row < Surface.ButtonRows; row++)
         {
@@ -410,8 +410,8 @@ public:
     {
         uint8_t row;
 
-        // scriptLog("MC: Song part changed to number " + std::to_string(newIndex), 1);
-        // scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
+        scriptLog("MC: Song part changed to number " + std::to_string(newIndex), 1);
+        scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
 
         for (row = 0; row < Surface.ButtonRows; row++)
         {
@@ -427,7 +427,7 @@ public:
     {
         uint8_t row;
 
-        // scriptLog("MC: Mode changed to " + std::to_string(mode), 1);
+        scriptLog("MC: Mode changed to " + std::to_string(mode), 1);
         // scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
 
         DisplayTopLeft(0, "");
@@ -529,10 +529,11 @@ public:
         std::string widgetname, setting;
         std::vector<std::string> widgetlist, globalwidgetlist;
 
-        // scriptLog("MC: Rackspace Changed to " + getRackspaceName(getCurrentRackspaceIndex()),1);
+        scriptLog("MC: Rackspace Changed to " + getRackspaceName(getCurrentRackspaceIndex()),1);
         Surface.reportWidgetChanges = false;
         if (Surface.TextDisplay != SHOW_SONGS) {   
             ClearMCUDisplay();
+            ClearMCUDisplay(2);
         }
 
         // Clear the BankIDs and active bank data from the prior rackspace's widget set

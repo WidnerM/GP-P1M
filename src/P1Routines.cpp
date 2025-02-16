@@ -12,7 +12,9 @@ std::string centerText(std::string text, int maxAmount = 8)
     return std::format("{:^8}", text);
 }
 
-P1Softbutton formatSoftbuttonText(std::string label)
+// basic code to format the two-line softbutton display
+// could improve it by deciding where to line break if > 8 characters
+P1Softbutton LibMain::formatSoftbuttonText(std::string label)
 {
     P1Softbutton Softbutton;
     std::string newlabel = cleanSysex(label);
@@ -54,7 +56,9 @@ std::string LibMain::SendSoftbuttons(uint8_t first, uint8_t last)
 {
     std::string sysex, hexsysex;
     uint8_t lines, loop, position;
+    bool touched, linetouched;
 
+    touched = false;
     for (lines = 0; lines < (80 / P1M_NAMES_PER_PAGE); lines++)
     {
         // sysex = gigperformer::sdk::GPUtils::hex2binaryString(P1M_NAME_START);
@@ -62,25 +66,38 @@ std::string LibMain::SendSoftbuttons(uint8_t first, uint8_t last)
 
         hexsysex = P1M_NAME_START;
         hexsysex = hexsysex.replace(21, 2, std::format("{:02x}", lines + 1));
+        linetouched = false;
 
         for (loop = 0; loop < P1M_NAMES_PER_PAGE; loop++)
         {
             position = loop + lines * P1M_NAMES_PER_PAGE;
-            // sysex += Surface.P1SoftbuttonArray[position].Format;
-            // sysex += Surface.P1SoftbuttonArray[position].Label;
+            if (Surface.P1SoftbuttonArray[position].Label != Surface.LastSoftbuttonArray[position].Label)
+            {
+                linetouched = true;
+                touched = true;
+                Surface.LastSoftbuttonArray[position].Label = Surface.P1SoftbuttonArray[position].Label;
+                // sysex += Surface.P1SoftbuttonArray[position].Format;
+                // sysex += Surface.P1SoftbuttonArray[position].Label;
+            }
 
             hexsysex += std::format(" {:02x} ", Surface.P1SoftbuttonArray[position].Format) + textToHexString(Surface.P1SoftbuttonArray[position].Label);
         }
 
         // sysex += (uint8_t)0xf7;
         hexsysex += " f7";
-        scriptLog(hexsysex, 0);
-        // sendPort4Message(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(hexsysex)));
-        sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(hexsysex));
+
+        // only send the sysex for the line if it was touched, or some line was touched and it's the final line
+        if (linetouched || (lines > 6 && touched)) {
+            scriptLog(hexsysex, 0);
+            sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(hexsysex));
+        }
+        else scriptLog("P1M: line " + std::to_string(lines) + " skipped", 0);
+
     }
     return "xxx";
 }
 
+// Sends the P1-M port 4 sysex to define the softbutton control codes
 std::string LibMain::SendSoftbuttonCodes(uint8_t first, uint8_t last)
 {
     std::string sysex, hexsysex;
@@ -113,69 +130,23 @@ std::string LibMain::SendSoftbuttonCodes(uint8_t first, uint8_t last)
             hexsysex += " 09 09 00 30 7f 00 00 00 09 09 00 31 7f 00 00 00 09 09 00 2e 7f 00 00 00 09 09 00 2f 7f 00 00 00";
         // sysex += (uint8_t)0xf7;
         hexsysex += " f7";
-        scriptLog(hexsysex, 0);
+        // scriptLog(hexsysex, 0);
         // sendPort4Message(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(hexsysex)));
         sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(hexsysex));
     }
     // send page 9 of keydefs or the P1-M ignores everything above
-    sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(P1M_KEYDEF_CLOSE));
+    sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(P1M_KEYDEF_PAGE4));
+    sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(P1M_KEYDEF_PAGE5));
+    sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(P1M_KEYDEF_PAGE6));
+    sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(P1M_KEYDEF_PAGE7));
+    sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(P1M_KEYDEF_PAGE8));
+    sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(P1M_KEYDEF_PAGE9));
     return "xxx";
 }
 
 
-void LibMain::InitializeP1M()
-{
-    int x;
-
-    // Surface.Initialize();
-
-    // Surface.FirstShownSong = 0;
-
-    // clear display
-    CleanP1M();
-}
-
-void LibMain::ClearP1MDisplay()
-{
-    // scriptLog("MCU clear display", 1);
-    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(P1M_CLEAR_BOT)));
-    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(P1M_CLEAR_TOP)));
-    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(MCU_CLEAR_BOT)));
-    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(MCU_CLEAR_TOP)));
-
-    SendSoftbuttonCodes(0, 0);
-}
-
-void LibMain::CleanP1M()
-{
-    int x;
-
-    // clear secondary display
-    ClearP1MDisplay();
-
-    // shut off all leds
-    for (x = 0; x <= 0x76; x++) {
-        sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(x, 0, 0));
-    }
-
-    // clear the knobs
-    for (x = 0; x <= 7; x++) {
-        sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeControlChangeMessage(0x30 + x, 0, 0));
-    }
-
-    // clear the VU meters on real MCUs
-    for (x = 0; x <= 7; x++) {
-        sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(MCU_CLEAR_VU + (std::string)"0" +
-            std::to_string(x) + "00 F7")));
-    }
-
-}
-
-
-// put knob text on top for P1M, fader text on top - if Surface.P1MType is true always do it this way
 // set up basic softbutton printing routine
-// set up label rewriting routine - integrate into DisplayRow, WidgetValueChanged??
-// implement color bars
+
 
 void LibMain::DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint8_t maxlength)
 {
@@ -206,8 +177,22 @@ void LibMain::DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint
         binmessage += gigperformer::sdk::GPUtils::hex2binaryString("f7");
         sendMidiMessage(binmessage);
 
-        scriptLog("P1M: col: " + std::to_string(column) + " row: " + std::to_string(row) + " max: " + std::to_string(maxlength) + text, 0);
-        scriptLog("P1M: display " + Surface.P1MText, 0);
+        // scriptLog("P1M: col: " + std::to_string(column) + " row: " + std::to_string(row) + " max: " + std::to_string(maxlength) + text, 0);
+        // scriptLog("P1M: display " + Surface.P1MText, 0);
         
     }
+}
+
+// P1M color bars - we have to send them all at once in one sysex
+void LibMain::DisplayP1MColorbars()
+{
+    std::string hexcolorstring = P1M_COLORBAR_PREFIX;
+
+    for (uint8_t loop = 0; loop < 8; loop++)
+    {
+        hexcolorstring += GPColorToSLColorHex(Surface.P1MColorbars[loop]);
+    }
+    hexcolorstring += "F7";
+    // sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(hexcolorstring));
+    sendMidiMessage(gigperformer::sdk::GPUtils::hex2binaryString(hexcolorstring));
 }

@@ -109,6 +109,11 @@ void LibMain::sendMidiMessage(const uint8_t* MidiMessage, int length) {
     }
 }
 
+// Takes hex string (e.g., "F0 2A b4"), converts, and sends
+/* void LibMain::sendHexMidiMessage(std::string MidiMessage) {
+    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(MidiMessage);
+} */
+
 void LibMain::sendPort4Message(std::string MidiMessage) {
     sendMidiMessageToMidiOutDevice(P1Port4Out, MidiMessage);
 }

@@ -252,7 +252,9 @@ public:
 	bool reportWidgetMode = false; // for P1-M we're turning that entirely off but keeping the MCU code generally intact
 	bool P1MType = true;
 	std::string P1MText = "                                                                                                               ";
-	P1Softbutton P1SoftbuttonArray[80];
+	P1Softbutton P1SoftbuttonArray[80], LastSoftbuttonArray[80];
+	
+	int P1MColorbars[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 	uint8_t TextDisplay = SHOW_FADERS;
 	int FirstShownSong = 0;
@@ -261,6 +263,7 @@ public:
 	uint8_t ButtonLayout = 0;
 	uint8_t RackRow = 255;
 	uint8_t VarRow = 255;
+
 
 	bool Initialize()
 	{
