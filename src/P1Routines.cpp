@@ -6,6 +6,51 @@
 #include <format>
 #include "LibMain.h"
 
+
+void LibMain::ScheduledSoftsend()
+{
+    std::string hexsysex, sysex;
+    uint8_t lines, loop, position;
+    bool touched, linetouched;
+
+    if (Surface.SoftbuttonArray.Dirty == true)
+    {
+        Surface.SoftbuttonArray.Dirty = false;
+        touched = false;
+        for (lines = 0; lines < (80 / P1M_NAMES_PER_PAGE); lines++)
+        {
+            hexsysex = P1M_NAME_START;
+            hexsysex = hexsysex.replace(21, 2, std::format("{:02x}", lines + 1)); // which chunk we're on
+            linetouched = false;
+
+            for (loop = 0; loop < P1M_NAMES_PER_PAGE; loop++)
+            {
+                position = loop + lines * P1M_NAMES_PER_PAGE;
+                if (Surface.SoftbuttonArray.Buttons[position].Label != Surface.SoftbuttonArray.LastButtons[position].Label)
+                {
+                    linetouched = true;
+                    touched = true;
+                    Surface.SoftbuttonArray.LastButtons[position].Label = Surface.SoftbuttonArray.Buttons[position].Label;
+                }
+                hexsysex += std::format(" {:02x} ", Surface.SoftbuttonArray.Buttons[position].Format) + textToHexString(Surface.SoftbuttonArray.Buttons[position].Label);
+            }
+            hexsysex += " f7";
+
+            // scriptLog(hexsysex, 0);
+            // scriptLog("Surface 8: " + surfacelink.SoftbuttonArray.Buttons[8].Label + " - refreshTimer 8: " + refreshTimer.softbuttonarray.Buttons[8].Label, 0);
+
+            // only send the sysex for the line if it was touched, or some line was touched and it's the final line
+            if (linetouched || (lines > 6 && touched)) {
+                // scriptLog(hexsysex, 0);
+                // sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(hexsysex));
+                sysex = gigperformer::sdk::GPUtils::hex2binaryString(hexsysex);
+                sendMidiMessageToMidiOutDevice(Surface.PortFour, sysex);
+            }
+            // else scriptLog("P1M: line " + std::to_string(lines) + " skipped", 0);
+        }
+    }
+}
+
 // Send the softbutton labels to the P1-M
 // the P1-M protocol requires sending this in 180 byte chunks (containing 10 softbutton labels each)
 // where the last chunk (of 8 total) is mandatory but all preceding chunks (i.e., 1-7) are optional.
@@ -15,49 +60,48 @@
 // ignored here because we compare every chunk to the last sent version of that chunk and only send updated ones.
 // That has not been sufficient to address the issue, so my next effort will be to try putting this routine
 // on a timer.
-std::string LibMain::SendSoftbuttons(uint8_t first, uint8_t last)
+void LibMain::SendSoftbuttons(uint8_t first, uint8_t last)
 {
-    std::string sysex, hexsysex;
+    std::string hexsysex;
     uint8_t lines, loop, position;
     bool touched, linetouched;
 
-    touched = false;
-    for (lines = 0; lines < (80 / P1M_NAMES_PER_PAGE); lines++)
+    if (false)
     {
-        // sysex = gigperformer::sdk::GPUtils::hex2binaryString(P1M_NAME_START);
-        // sysex[P1M_NAME_PAGE] = lines - 1;
-
-        hexsysex = P1M_NAME_START;
-        hexsysex = hexsysex.replace(21, 2, std::format("{:02x}", lines + 1));
-        linetouched = false;
-
-        for (loop = 0; loop < P1M_NAMES_PER_PAGE; loop++)
-        {
-            position = loop + lines * P1M_NAMES_PER_PAGE;
-            if (Surface.P1SoftbuttonArray[position].Label != Surface.LastSoftbuttonArray[position].Label)
-            {
-                linetouched = true;
-                touched = true;
-                Surface.LastSoftbuttonArray[position].Label = Surface.P1SoftbuttonArray[position].Label;
-                // sysex += Surface.P1SoftbuttonArray[position].Format;
-                // sysex += Surface.P1SoftbuttonArray[position].Label;
-            }
-
-            hexsysex += std::format(" {:02x} ", Surface.P1SoftbuttonArray[position].Format) + textToHexString(Surface.P1SoftbuttonArray[position].Label);
-        }
-
-        // sysex += (uint8_t)0xf7;
-        hexsysex += " f7";
-
-        // only send the sysex for the line if it was touched, or some line was touched and it's the final line
-        if (linetouched || (lines > 6 && touched)) {
-            scriptLog(hexsysex, 0);
-            sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(hexsysex));
-        }
-        // else scriptLog("P1M: line " + std::to_string(lines) + " skipped", 0);
-
+        Surface.SoftbuttonArray.Dirty = true;
     }
-    return "xxx";
+    else
+    {
+        touched = false;
+        for (lines = 0; lines < (80 / P1M_NAMES_PER_PAGE); lines++)
+        {
+            hexsysex = P1M_NAME_START;
+            hexsysex = hexsysex.replace(21, 2, std::format("{:02x}", lines + 1)); // which chunk we're on
+            linetouched = false;
+
+            for (loop = 0; loop < P1M_NAMES_PER_PAGE; loop++)
+            {
+                position = loop + lines * P1M_NAMES_PER_PAGE;
+                if (Surface.SoftbuttonArray.Buttons[position].Label != Surface.SoftbuttonArray.LastButtons[position].Label)
+                {
+                    linetouched = true;
+                    touched = true;
+                    Surface.SoftbuttonArray.LastButtons[position].Label = Surface.SoftbuttonArray.Buttons[position].Label;
+                }
+
+                hexsysex += std::format(" {:02x} ", Surface.SoftbuttonArray.Buttons[position].Format) + textToHexString(Surface.SoftbuttonArray.Buttons[position].Label);
+            }
+            hexsysex += " f7";
+
+            // only send the sysex for the line if it was touched, or some line was touched and it's the final line
+            if (linetouched || (lines > 6 && touched)) {
+                // scriptLog(hexsysex, 0);
+                sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(hexsysex));
+            }
+            // else scriptLog("P1M: line " + std::to_string(lines) + " skipped", 0);
+        }
+    }
+    // lambdaDemo("nothing");
 }
 
 std::string centerText(std::string text, int maxAmount = 8)
@@ -99,11 +143,22 @@ void LibMain::InitializeSoftbuttons()
     {
         label = "Soft " + std::to_string(x + 1);
 
-        Surface.P1SoftbuttonArray[x] = formatSoftbuttonText(label);
+        Surface.SoftbuttonArray.set(x,formatSoftbuttonText(label));
+        // Surface.SoftbuttonArray.Buttons[x] = formatSoftbuttonText(label);
+        // refreshTimer.softbuttonarray.set(x, formatSoftbuttonText(label));
     }
 }
 
 // Sends the P1-M port 4 sysex to define the softbutton control codes
+// the structure of the P1-M protocol appears to be designed with the idea that we could write any
+// individual keydef in isolation. As implemented we cannot.  We have to send groups of keydefs in
+// specifically sized sysex strings which happen to be different between the P1-M, P1-Nano, and probably
+// every other device in the P1 family.
+// For now we are setting up the softbutton area to send note-on events 54-69 (16 button grid) on
+// each of the five softbutton pages. We put each page on its own channel number, with Blue being channel 1.
+// In the current P1-M firmware these are the only 16 contiguous buttons that can be lit-unlit that are not
+// already taken by the rest of the control surface. Unfortunately the P1-M cannot light-unlight anything
+// but channel 1.  Hopefully they will enhance this at some point.
 std::string LibMain::SendSoftbuttonCodes(uint8_t first, uint8_t last)
 {
     std::string sysex, hexsysex;
@@ -113,9 +168,6 @@ std::string LibMain::SendSoftbuttonCodes(uint8_t first, uint8_t last)
     // then we also have to send the final page (9) or the P1-M ignores everything we sent
     for (page = 0; page < 3; page++)
     {
-        // sysex = gigperformer::sdk::GPUtils::hex2binaryString(P1M_KEYDEF_START);
-        // sysex[P1M_KEYDEF_PAGE] = lines - 1;
-
         hexsysex = P1M_KEYDEF_START;
         hexsysex = hexsysex.replace(21, 2, std::format("{:02x}", page + 1)); // replace page we're on
 
@@ -134,7 +186,6 @@ std::string LibMain::SendSoftbuttonCodes(uint8_t first, uint8_t last)
         // we need the last four keydefs to be the chan left-right and bank left-right MCU definitions
         if (page == 2)
             hexsysex += " 09 09 00 30 7f 00 00 00 09 09 00 31 7f 00 00 00 09 09 00 2e 7f 00 00 00 09 09 00 2f 7f 00 00 00";
-        // sysex += (uint8_t)0xf7;
         hexsysex += " f7";
         // scriptLog(hexsysex, 0);
         // sendPort4Message(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(hexsysex)));

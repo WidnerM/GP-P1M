@@ -5,6 +5,9 @@
 std::vector<std::string> panelNames = { "MCU to OSC" };
 std::vector<std::string> relativePanelLocations = { "MCUtoOSC.gppanel" };
 
+// make global variable Surface static so it can be referened in asychronous RefreshTimer calls
+SurfaceClass staticSurface;
+SurfaceClass LibMain::Surface = staticSurface;
 
 std::string pathToMe; // This needs to be initialized from the initialization secttion of the LibMain class so it can be used in the standalone functions directly below
 
@@ -38,7 +41,7 @@ std::string  LibMain::GetPanelXML(int index)
 
 
 // List of menu items
-std::vector<std::string> menuNames = { "MCU Standard Layout", "Icon M+ Layout", "X-Touch Layout", "Re-initialize extention" };
+std::vector<std::string> menuNames = { "MCU Standard Layout", "Icon M+ Layout", "X-Touch Layout", "Re-initialize extention", "lambdaDemo"};
 
 
 int LibMain::GetMenuCount()
@@ -84,6 +87,11 @@ void LibMain::InvokeMenu(int index)
             SendSoftbuttons(1, 80);
             SendSoftbuttonCodes(1, 80);
             break;
+        case 4:
+            scriptLog("calling LambdaDemo", 0);
+            lambdaDemo("testmessage");
+            scriptLog("Returned after LambdaDemo", 0);
+            break;
 
         default:
             break;
@@ -115,7 +123,8 @@ void LibMain::sendMidiMessage(const uint8_t* MidiMessage, int length) {
 } */
 
 void LibMain::sendPort4Message(std::string MidiMessage) {
-    sendMidiMessageToMidiOutDevice(P1Port4Out, MidiMessage);
+    // sendMidiMessageToMidiOutDevice(P1Port4Out, MidiMessage);
+    sendMidiMessageToMidiOutDevice(Surface.PortFour, MidiMessage);
 }
 
 
@@ -135,6 +144,7 @@ void LibMain::SetSurfaceLayout(uint8_t config) {
         DisplayModeButtons();
     }
 }
+
 
 gigperformer::sdk::GigPerformerAPI* gigperformer::sdk::CreateGPExtension(LibraryHandle handle)
 {

@@ -2,7 +2,6 @@
 
 #include "MCU_Constructs.h"
 #include "MCU_Buttons.h"
-#include "LibMain.h"
 
 // Define identifiers GP user must use to name their widgets
 #define THIS_PREFIX "mc"
@@ -226,7 +225,7 @@ class P1Softbutton
 {
 public:
 	uint8_t Format = 7;
-	std::string Label = "               ";
+	std::string Label = "                ";
 };
 
 class P1SoftButtonEvent
@@ -242,6 +241,24 @@ public:
 	uint8_t unused2;
 };
 
+class P1SoftbuttonArray
+{
+public:
+	P1Softbutton Buttons[80];
+	P1Softbutton LastButtons[80];
+	bool Dirty = true;
+
+	bool set(uint8_t position, P1Softbutton button)
+	{
+		if (position < 80) {
+			Buttons[position] = button;
+			Dirty = true;
+			return true;
+		}
+		else return false;
+	}
+};
+
 class SurfaceClass
 {
 public:
@@ -252,7 +269,10 @@ public:
 	bool reportWidgetMode = false; // for P1-M we're turning that entirely off but keeping the MCU code generally intact
 	bool P1MType = true;
 	std::string P1MText = "                                                                                                               ";
-	P1Softbutton P1SoftbuttonArray[80], LastSoftbuttonArray[80];
+	P1SoftbuttonArray SoftbuttonArray;
+	std::string OutPort = "";
+	std::string InPort = "";
+	std::string PortFour = "";
 	
 	int P1MColorbars[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
@@ -299,8 +319,10 @@ public:
 		// P1-M Softbutton array initialization - label can be up to 14 characters (2 lines of 7)
 		for (x = 0; x < 80; x++)
 		{
-			P1SoftbuttonArray[x].Label = "Soft " + std::to_string(x+1);
-			P1SoftbuttonArray[x].Format = 1;
+			// P1SoftbuttonArray[x].Label = "Soft " + std::to_string(x+1);
+			SoftbuttonArray.Buttons[x].Label = "Soft " + std::to_string(x + 1);
+			// P1SoftbuttonArray[x].Format = 1;
+			SoftbuttonArray.Buttons[x].Format = 1;
 		}
 
 		return true;

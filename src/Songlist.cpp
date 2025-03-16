@@ -71,7 +71,7 @@ void LibMain::DisplaySongs(SurfaceRow Row, bool forcetocurrent)
         if (selected == 1) { DisplayWidgetValue(Row, x, BUTTON_LIT); }
         else { DisplayWidgetValue(Row, x, BUTTON_OFF); }
 
-        Surface.P1SoftbuttonArray[x] = formatSoftbuttonText(songname);
+        Surface.SoftbuttonArray.set(x, formatSoftbuttonText(songname));
 
         // show songs/racks on LCD display if appropriate, alternating top and bottom rows so we can fit 12 letters per song
         if (Surface.TextDisplay == SHOW_SONGS) {
@@ -90,7 +90,7 @@ void LibMain::DisplaySongs(SurfaceRow Row, bool forcetocurrent)
         }
         songindex++;
     }
-    SendSoftbuttons(0, 7);
+    // SendSoftbuttons(0, 7);
 }
 
 
@@ -116,7 +116,7 @@ void LibMain::DisplaySongParts(SurfaceRow Row, int current)
         }
 
         DisplayWidgetValue(Row, x, x == current ? BUTTON_LIT : BUTTON_OFF);
-        Surface.P1SoftbuttonArray[x+8] = formatSoftbuttonText(songpartname);
+        Surface.SoftbuttonArray.set(x+8, formatSoftbuttonText(songpartname));
 
         // Show the song name on the the OSC display and MCU display if appropriate
         oscwidget = THIS_PREFIX + (std::string) "_" + Row.WidgetID + "_active_" + std::to_string(x);
@@ -127,13 +127,14 @@ void LibMain::DisplaySongParts(SurfaceRow Row, int current)
             setWidgetValue(oscwidget, x == current ? 1.0 : 0.0);
         }
     }
-    SendSoftbuttons(8, 15);
+    // SendSoftbuttons(8, 15);
 }
 
 void LibMain::DisplayVariations(SurfaceRow Row, int current)
 {
     int x, variationcount;
     std::string variationname, oscwidget;
+
 
     if (current < 0) { current = getCurrentVariationIndex(); }
     variationcount = getVariationCount(getCurrentRackspaceIndex());
@@ -152,7 +153,11 @@ void LibMain::DisplayVariations(SurfaceRow Row, int current)
         }
 
         DisplayWidgetValue(Row, x, x==current ? BUTTON_LIT : BUTTON_OFF);
-        Surface.P1SoftbuttonArray[x+8] = formatSoftbuttonText(variationname);
+
+        Surface.SoftbuttonArray.set(x+8, formatSoftbuttonText(variationname));
+        // refreshTimer.softbuttonarray.set(x + 8, formatSoftbuttonText(variationname));
+
+        // refreshTimer.softbuttonarray.set(x+8, formatSoftbuttonText(variationname));
 
         // Show the variation name on the the OSC display and MCU display if appropriate
         oscwidget = THIS_PREFIX + (std::string) "_" + Row.WidgetID + "_active_" + std::to_string(x);
@@ -163,7 +168,7 @@ void LibMain::DisplayVariations(SurfaceRow Row, int current)
             setWidgetValue(oscwidget, x == current ? 1.0 : 0.0);
         }
     }
-    SendSoftbuttons(8, 15);
+    // SendSoftbuttons(8, 15);
 }
 
 //  This displays the Racks on a button row
@@ -226,7 +231,9 @@ void LibMain::DisplayRacks(SurfaceRow Row, bool forcetocurrent)
             selected = 0;
         }
 
-        Surface.P1SoftbuttonArray[x] = formatSoftbuttonText(rackname);
+        Surface.SoftbuttonArray.set(x,formatSoftbuttonText(rackname));
+        // refreshTimer.softbuttonarray.set(x, formatSoftbuttonText(rackname));
+
         if (selected == 1) { DisplayWidgetValue(Row, x, BUTTON_LIT); }
         else { DisplayWidgetValue(Row, x, BUTTON_OFF); }
 
@@ -245,7 +252,7 @@ void LibMain::DisplayRacks(SurfaceRow Row, bool forcetocurrent)
         }
         rackindex++;
     }
-    SendSoftbuttons(0, 7);
+    // SendSoftbuttons(0, 7);
 }
 
 void LibMain::DisplayRow(SurfaceRow Row)

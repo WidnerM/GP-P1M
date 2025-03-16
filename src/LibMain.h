@@ -11,6 +11,8 @@
 #include <regex>
 #include "MCU_Classes.h"
 #include "General_Utils.h"
+#include "DelayCallback.h"
+
 
 
 // define an XML string describing your product
@@ -45,7 +47,11 @@ public:
 
     //  Global declarations and initializations
     //  [Global to the LibMain class, that is]
-    SurfaceClass Surface;
+    static SurfaceClass Surface;
+    RefreshTimer refreshTimer;
+
+
+    void lambdaDemo(std::string message);
 
     std::vector<std::string> MidiOut = { MCU_OUT };
     std::vector<std::string> MidiIn = { MCU_IN };
@@ -87,7 +93,8 @@ public:
 
     // from P1Routines.cpp
     void InitializeSoftbuttons();
-    std::string SendSoftbuttons(uint8_t first, uint8_t last);
+    void SendSoftbuttons(uint8_t first, uint8_t last);
+    void ScheduledSoftsend();
     void DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint8_t maxlength);
     void DisplayP1MColorbars();
     P1Softbutton formatSoftbuttonText(std::string label);
@@ -158,6 +165,7 @@ public:
             if (regex_match(name, std::regex("MIDIOUT4.*P1-M.*")))
             {
                 P1Port4Out = name;
+                Surface.PortFour = name;
                 scriptLog("P1M:  Using port 4 " + name, 0);
             }
         }
@@ -389,8 +397,8 @@ public:
     {
         uint8_t row;
         
-        scriptLog("MC: Song changed to number " + std::to_string(newIndex), 1);
-        scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
+        // scriptLog("MC: Song changed to number " + std::to_string(newIndex), 1);
+        // scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
         
         for (row = 0; row < Surface.ButtonRows; row++)
         {
@@ -410,8 +418,8 @@ public:
     {
         uint8_t row;
 
-        scriptLog("MC: Song part changed to number " + std::to_string(newIndex), 1);
-        scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
+        // scriptLog("MC: Song part changed to number " + std::to_string(newIndex), 1);
+        // scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
 
         for (row = 0; row < Surface.ButtonRows; row++)
         {
@@ -427,7 +435,7 @@ public:
     {
         uint8_t row;
 
-        scriptLog("MC: Mode changed to " + std::to_string(mode), 1);
+        // scriptLog("MC: Mode changed to " + std::to_string(mode), 1);
         // scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
 
         DisplayTopLeft(0, "");
@@ -529,7 +537,7 @@ public:
         std::string widgetname, setting;
         std::vector<std::string> widgetlist, globalwidgetlist;
 
-        scriptLog("MC: Rackspace Changed to " + getRackspaceName(getCurrentRackspaceIndex()),1);
+        // scriptLog("MC: Rackspace Changed to " + getRackspaceName(getCurrentRackspaceIndex()),1);
         Surface.reportWidgetChanges = false;
         if (Surface.TextDisplay != SHOW_SONGS) {   
             ClearMCUDisplay();
@@ -621,7 +629,14 @@ public:
         DisplayModeButtons();
     }
 
- 
+    void OnOpen() override
+    {
+        // ExtensionWindow::initialize();
+        juce::MessageManager::getInstance()->callAsync([]() { });
+        // scriptLog("starting timer", 0);
+        // refreshTimer.surfacelink = Surface;
+        refreshTimer.startTimer(100);
+    }
 
     void Initialization() override
     {
@@ -630,6 +645,7 @@ public:
         // Register callbacks.
         // We only register for OnGigLogaded() first because we don't want callbacks for all the other stuff until the Gig is fully loaded.
 
+        registerCallback("OnOpen");
         registerCallback("OnStatusChanged");
         registerCallback("OnMidiDeviceListChanged");
         registerCallback("OnClose");
