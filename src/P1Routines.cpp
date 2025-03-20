@@ -207,20 +207,13 @@ std::string LibMain::SendSoftbuttonCodes(uint8_t first, uint8_t last)
 }
 
 
-
-void LibMain::DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint8_t maxlength)
+// this entire routine is no longer needed following the bug fix starting with firmware 1.08 for the P1-M
+/* void LibMain::DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint8_t maxlength)
 {
     std::string hexmessage, subtext, binmessage;
 
     // Could probably handle this better...  Adding blanks to the text to display so we're guaranteed to clear whatever's there, then just use front 'maxlength' chars
     if (column < 8 && row < 4) {
-
-        // If the bottom two lines of text worked as they should the below would work. But that butchers the spacing of the text
-        /* subtext = cleanSysex(text);
-        subtext = subtext.substr(0, maxlength) + "                                                                ";
-        hexmessage = P1M_TEXT_HDR + gigperformer::sdk::GPUtils::intToHex(row * 0x38 + column * 7) + textToHexString(subtext.substr(0, (maxlength % 7 == 0) ? maxlength : maxlength + 7 - maxlength % 7)) + (std::string)" f7";
-        binmessage = gigperformer::sdk::GPUtils::hex2binaryString(hexmessage);
-        sendMidiMessage(binmessage); */
 
         // we need to write an entire line at once, so we store the two lines in a global variable and
         // splice in our changes then write the whole thing to the P1-M
@@ -241,7 +234,7 @@ void LibMain::DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint
         // scriptLog("P1M: display " + Surface.P1MText, 0);
         
     }
-}
+} */
 
 // P1M color bars - we have to send them all at once in one sysex
 void LibMain::DisplayP1MColorbars()

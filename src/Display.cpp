@@ -83,7 +83,15 @@ void LibMain::DisplayText(uint8_t column, uint8_t row, std::string text, uint8_t
     }
     else if (row < 4)
     {
-        DisplayP1MText(column, row, text, maxlength); // move that routine into this one
+        // DisplayP1MText(column, row, text, maxlength); // No longer need this post fw 1.08 for P1-M
+        if (column < 8) {
+            // Could  handle this better...  Adding blanks to the text to display so we're guaranteed to clear whatever's there, then just use front 'maxlength' chars
+            subtext = cleanSysex(text);
+            subtext = subtext.substr(0, maxlength) + "                                                                ";
+            hexmessage = P1M_TEXT_HDR + gigperformer::sdk::GPUtils::intToHex((row-2) * 0x38 + column * 7) + textToHexString(subtext.substr(0, (maxlength % 7 == 0) ? maxlength : maxlength + 7 - maxlength % 7)) + (std::string)" f7";
+            binmessage = gigperformer::sdk::GPUtils::hex2binaryString(hexmessage);
+            sendMidiMessage(binmessage);
+        }
     }
 }
 

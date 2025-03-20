@@ -15,53 +15,6 @@ void RefreshTimer::timerCallback()
     lib->ScheduledSoftsend();
 }
 
-/* void RefreshTimer::setDirty(bool value)
-{
-    surfacelink.SoftbuttonArray.Dirty = value;
-}
-
-RefreshTimer::RefreshTimer()
-{
-
-}
-
-RefreshTimer::~RefreshTimer()
-{
-
-}
-*/
-
-class SoftbuttonTimer : public juce::Timer
-{
-public:
-	virtual void timerCallback() override;
-
-    P1SoftbuttonArray ButtonArray;
-
-    void SetButtons(P1Softbutton buttons[80])
-    {
-        for (auto x=0; x<80; x++)
-            ButtonArray.Buttons[x] = buttons[x];
-    }
-
-    void SetDirty()
-    {
-        ButtonArray.Dirty = true;
-    }
-
-    void SetClean()
-    {
-        ButtonArray.Dirty = false;
-    }
-
-};
-
-void SoftbuttonTimer::timerCallback()
-{
-    // LibMain::scriptLog("Callback", 0);
-    // this->stopTimer();
-}
-
 void LibMain::lambdaDemo(std::string text)
 {
     std::string device;

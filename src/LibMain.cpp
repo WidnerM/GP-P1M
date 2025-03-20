@@ -41,7 +41,7 @@ std::string  LibMain::GetPanelXML(int index)
 
 
 // List of menu items
-std::vector<std::string> menuNames = { "MCU Standard Layout", "Icon M+ Layout", "X-Touch Layout", "Re-initialize extention", "lambdaDemo"};
+std::vector<std::string> menuNames = { "MCU Standard Layout", "iCon M+ Layout", "X-Touch Layout", "iCon P1-M Layout", "Re-initialize extention", "lambdaDemo"};
 
 
 int LibMain::GetMenuCount()
@@ -81,13 +81,18 @@ void LibMain::InvokeMenu(int index)
             else SetSurfaceLayout(2);
             break;
         case 3:
+            if (widgetExists(LAYOUT_WIDGETNAME)) { setWidgetValue(LAYOUT_WIDGETNAME, 0.25); }
+            else SetSurfaceLayout(3);
+            break;
+
+        case 4:
             // OnStatusChanged(GPStatus_GigFinishedLoading);
             // setWidgetBounds("BoundsWidget", 10, 10, 100, 100);
             InitializeSoftbuttons();
             SendSoftbuttons(1, 80);
             SendSoftbuttonCodes(1, 80);
             break;
-        case 4:
+        case 5:
             scriptLog("calling LambdaDemo", 0);
             lambdaDemo("testmessage");
             scriptLog("Returned after LambdaDemo", 0);
@@ -131,9 +136,9 @@ void LibMain::sendPort4Message(std::string MidiMessage) {
 // MCU compatible surfaces come in different configurations.  We have a configuration variable in the Surface structure so we can define different action keys for different functions
 void LibMain::SetSurfaceLayout(uint8_t config) {
     const uint8_t std_commandarray[] = DEFAULT_COMMAND_BUTTONS;
-    const uint8_t config_array[3][sizeof(std_commandarray)] = { DEFAULT_COMMAND_BUTTONS, ICON_MPLUS_COMMAND_BUTTONS, XTOUCH_COMMAND_BUTTONS };
+    const uint8_t config_array[4][sizeof(std_commandarray)] = { DEFAULT_COMMAND_BUTTONS, ICON_MPLUS_COMMAND_BUTTONS, XTOUCH_COMMAND_BUTTONS, ICON_P1M_COMMAND_BUTTONS };
 
-    if (config >= 0 && config <= 2)
+    if (config >= 0 && config <= 3)
     {
         for (auto x = 0; x < sizeof(Surface.CommandButtons); ++x)
         {

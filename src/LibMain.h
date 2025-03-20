@@ -48,6 +48,7 @@ public:
     //  Global declarations and initializations
     //  [Global to the LibMain class, that is]
     static SurfaceClass Surface;
+    static SurfaceClass SurfaceArray[3];
     RefreshTimer refreshTimer;
 
 
@@ -95,7 +96,7 @@ public:
     void InitializeSoftbuttons();
     void SendSoftbuttons(uint8_t first, uint8_t last);
     void ScheduledSoftsend();
-    void DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint8_t maxlength);
+    // void DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint8_t maxlength);
     void DisplayP1MColorbars();
     P1Softbutton formatSoftbuttonText(std::string label);
 
@@ -489,6 +490,8 @@ public:
                 bank = name_segments[2];
                 column = name_segments[3];
 
+                // loop this three times for prefic mc1 mc2 mc3 (or just mc in place of mc1)
+                // and instead of Surface.addSurfaceBank use SurfaceArray[x].addSurfaceBank
                 // if it's a widget we're interested in, add a bank for it if it doesn't already exist, and listen for it
                 if (prefix == THIS_PREFIX && bank != "active" )  // we don't listen for "active" widgets, which are generally just for linking to an OSC display
                 {

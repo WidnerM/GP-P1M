@@ -13,9 +13,6 @@
 class RefreshTimer : public juce::Timer
 {
 public:
-    // RefreshTimer();
-    // ~RefreshTimer() override;
-
     void timerCallback() override;
 };
 

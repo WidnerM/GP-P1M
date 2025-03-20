@@ -73,10 +73,10 @@
 #define FADERS_BANK_DOWN 8
 #define SETLIST_TOGGLE 9
 
-// the button order here is { show_faders, show_knobs, show_racks/songs, fader_bank_down, fader_bank_up, 
+// the button order here is { show_faders, show_knobs, show_racks/songs, fader_bank_down, fader_bank_up, knob bank up, knob bank down, song/rack list fwd, song/rack back, toggle setlist/rackspace }
 #define DEFAULT_COMMAND_BUTTONS {SID_ASSIGNMENT_TRACK, SID_ASSIGNMENT_PAN, SID_ASSIGNMENT_EQ, SID_FADERBANK_GLOBAL, SID_FADERBANK_FLIP, SID_FADERBANK_NEXT_BANK, SID_FADERBANK_PREV_BANK, SID_FADERBANK_NEXT_CH, SID_FADERBANK_PREV_CH, SID_TRANSPORT_RECORD }
 #define ICON_MPLUS_COMMAND_BUTTONS {SID_AUTOMATION_WRITE, SID_AUTOMATION_READ, SID_MARKER, SID_TRANSPORT_FAST_FORWARD, SID_TRANSPORT_REWIND, SID_FADERBANK_NEXT_BANK, SID_FADERBANK_PREV_BANK, SID_FADERBANK_NEXT_CH, SID_FADERBANK_PREV_CH, SID_TRANSPORT_RECORD }
-#define ICON_P1M_COMMAND_BUTTONS {SID_AUTOMATION_WRITE, SID_AUTOMATION_READ, SID_MARKER, SID_FADERBANK_NEXT_CH, SID_FADERBANK_PREV_CH, SID_TRANSPORT_FAST_FORWARD, SID_TRANSPORT_REWIND, SID_FADERBANK_NEXT_BANK, SID_FADERBANK_PREV_BANK, SID_TRANSPORT_RECORD }
+#define ICON_P1M_COMMAND_BUTTONS {0xff, 0xff, 0xff,                                        SID_FADERBANK_NEXT_BANK, SID_FADERBANK_PREV_BANK, SID_FADERBANK_NEXT_CH, SID_FADERBANK_PREV_CH, SID_TRANSPORT_FAST_FORWARD, SID_TRANSPORT_REWIND, SID_TRANSPORT_RECORD }
 #define XTOUCH_COMMAND_BUTTONS {SID_ASSIGNMENT_TRACK, SID_ASSIGNMENT_PAN, SID_ASSIGNMENT_EQ, SID_TRANSPORT_FAST_FORWARD, SID_TRANSPORT_REWIND, SID_FADERBANK_NEXT_BANK, SID_FADERBANK_PREV_BANK, SID_FADERBANK_NEXT_CH, SID_FADERBANK_PREV_CH, SID_TRANSPORT_RECORD }
 
 // The SurfaceWidget class is the conduit used for translating GP widget information and changes to control surface displayscontroller_widgettype_bankname_position
@@ -268,10 +268,10 @@ public:
 	bool reportWidgetChanges = true; // for MCUs indicates whether we dedicate a display line to showing value of any touched widget
 	bool reportWidgetMode = false; // for P1-M we're turning that entirely off but keeping the MCU code generally intact
 	bool P1MType = true;
-	std::string P1MText = "                                                                                                               ";
+	// std::string P1MText = "                                                                                                               ";
 	P1SoftbuttonArray SoftbuttonArray;
-	std::string OutPort = "";
 	std::string InPort = "";
+	std::string OutPort = "";
 	std::string PortFour = "";
 	
 	int P1MColorbars[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -368,5 +368,3 @@ public:
 	}
 
 };
-
-
