@@ -8,6 +8,9 @@
 #define RACKROW_WIDGETNAME "mc_rackrow"
 #define VARROW_WIDGETNAME "mc_variationrow"
 
+#define SHOWRACKS_WIDGETNAME "mc_showracks"
+#define SHOWSONGS_WIDGETNAME "mc_showsongs"
+
 #define EXTENSION_IDENTIFIER "MCU extension"
 
 #define UNIVERSAL_QUERY "F0 7E 7F 06 01 F7"

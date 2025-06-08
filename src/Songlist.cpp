@@ -26,7 +26,7 @@ void LibMain::DisplaySongs(SurfaceRow Row, bool forcetocurrent)
     // Set Surface.FirstShownSong correctly for what we're going to show at leftmost position
     if (forcetocurrent == true)
     {
-        x = current % 8; // we're going to show in banks of 8, this is the offset
+        x = current % Surface.ShowSongCount; // we're going to show in banks of 8, this is the offset
         Surface.FirstShownSong = current - x;
     }
     else
@@ -35,16 +35,16 @@ void LibMain::DisplaySongs(SurfaceRow Row, bool forcetocurrent)
         {
             Surface.FirstShownSong = 0; // firstshown is zero based, count can be 0 only if there are no songs
         }
-        if (Surface.FirstShownSong < 0) { Surface.FirstShownSong = songcount - songcount % 8; }
+        if (Surface.FirstShownSong < 0) { Surface.FirstShownSong = songcount - songcount % Surface.ShowSongCount; }
     }
     songindex = Surface.FirstShownSong;
 
-    if (Surface.TextDisplay == SHOW_SONGS)
+    /* if (Surface.TextDisplay == SHOW_SONGS)
     {
         if (inSetlistMode() == 1) { DisplayText(0, 1, "S" + std::to_string(Surface.FirstShownSong + 1) + "-" + std::to_string(Surface.FirstShownSong + 8), 7); }
-    }
+    } */
 
-    for (x = 0; x < 8; x++)  // cycle through display positions
+    for (x = 0; x < Surface.ShowSongCount; x++)  // cycle through display positions
     {
         if (songindex >= songcount)  // clear the text if there's no song this high
         {
@@ -74,9 +74,9 @@ void LibMain::DisplaySongs(SurfaceRow Row, bool forcetocurrent)
         Surface.SoftbuttonArray.set(x, formatSoftbuttonText(songname));
 
         // show songs/racks on LCD display if appropriate, alternating top and bottom rows so we can fit 12 letters per song
-        if (Surface.TextDisplay == SHOW_SONGS) {
+        /* if (Surface.TextDisplay == SHOW_SONGS) {
             if (inSetlistMode() == 1) { DisplayText(x, x % 2, songname, (x==7) ? 6 : 12); }
-        }
+        } */
 
         // Show the song name on the the OSC display
         oscwidget = THIS_PREFIX + (std::string) "_" + Row.WidgetID + "_active_" + std::to_string(x);
@@ -90,7 +90,8 @@ void LibMain::DisplaySongs(SurfaceRow Row, bool forcetocurrent)
         }
         songindex++;
     }
-    // SendSoftbuttons(0, 7);
+
+    if (Surface.ShowSongpartCount) DisplaySongParts(Row, -1);
 }
 
 
@@ -102,7 +103,7 @@ void LibMain::DisplaySongParts(SurfaceRow Row, int current)
     current = getCurrentSongpartIndex();
     songpartcount = getSongpartCount(getCurrentSongIndex());
 
-    for (x = 0; x < 8; x++)  // cycle through display positions
+    for (x = 0; x < Surface.ShowSongpartCount; x++)  // cycle through display positions
     {
         if (x >= songpartcount)  // clear the text if there's no song this high
         {
@@ -115,8 +116,8 @@ void LibMain::DisplaySongParts(SurfaceRow Row, int current)
             if (songpartname == "") { songpartname = ""; }
         }
 
-        DisplayWidgetValue(Row, x, x == current ? BUTTON_LIT : BUTTON_OFF);
-        Surface.SoftbuttonArray.set(x+8, formatSoftbuttonText(songpartname));
+        DisplayWidgetValue(Row, x + Surface.ShowSongCount, x == current ? BUTTON_LIT : BUTTON_OFF);
+        Surface.SoftbuttonArray.set(x+Surface.ShowSongCount, formatSoftbuttonText(songpartname));
 
         // Show the song name on the the OSC display and MCU display if appropriate
         oscwidget = THIS_PREFIX + (std::string) "_" + Row.WidgetID + "_active_" + std::to_string(x);
@@ -127,7 +128,6 @@ void LibMain::DisplaySongParts(SurfaceRow Row, int current)
             setWidgetValue(oscwidget, x == current ? 1.0 : 0.0);
         }
     }
-    // SendSoftbuttons(8, 15);
 }
 
 void LibMain::DisplayVariations(SurfaceRow Row, int current)
@@ -139,9 +139,9 @@ void LibMain::DisplayVariations(SurfaceRow Row, int current)
     if (current < 0) { current = getCurrentVariationIndex(); }
     variationcount = getVariationCount(getCurrentRackspaceIndex());
 
-    for (x = 0; x < 8; x++)  // cycle through display positions
+    for (x = 0; x < Surface.ShowVariationCount; x++)  // cycle through display positions
     {
-        if (x >= variationcount)  // clear the text if there's no song this high
+        if (x >= variationcount)  // clear the text if there's no variation this high
         {
             variationname = "-";   // Better to send something to OSC so widgets don't pull up default labels
             // SetButtonColor(MCU_LOWEST_BUTTON + x, SLMKIII_BLACK);
@@ -152,9 +152,9 @@ void LibMain::DisplayVariations(SurfaceRow Row, int current)
             if (variationname == "") { variationname = "[blank]"; }
         }
 
-        DisplayWidgetValue(Row, x, x==current ? BUTTON_LIT : BUTTON_OFF);
+        DisplayWidgetValue(Row, x+Surface.ShowRackCount, x==current ? BUTTON_LIT : BUTTON_OFF);
 
-        Surface.SoftbuttonArray.set(x+8, formatSoftbuttonText(variationname));
+        Surface.SoftbuttonArray.set(x+Surface.ShowRackCount, formatSoftbuttonText(variationname));
         // refreshTimer.softbuttonarray.set(x + 8, formatSoftbuttonText(variationname));
 
         // refreshTimer.softbuttonarray.set(x+8, formatSoftbuttonText(variationname));
@@ -168,7 +168,6 @@ void LibMain::DisplayVariations(SurfaceRow Row, int current)
             setWidgetValue(oscwidget, x == current ? 1.0 : 0.0);
         }
     }
-    // SendSoftbuttons(8, 15);
 }
 
 //  This displays the Racks on a button row
@@ -189,7 +188,7 @@ void LibMain::DisplayRacks(SurfaceRow Row, bool forcetocurrent)
     // Get Surface.FirstShownRack set correctly for what we're going to show at leftmost position
     if (forcetocurrent == true)
     {
-        x = current % 8; // we're going to show in banks of 8, this is the offset
+        x = current % Surface.ShowRackCount; // we're going to show in banks of 8, this is the offset
         Surface.FirstShownRack = current - x;
     }
     else
@@ -203,12 +202,12 @@ void LibMain::DisplayRacks(SurfaceRow Row, bool forcetocurrent)
     }
     rackindex = Surface.FirstShownRack;
 
-    if (Surface.TextDisplay == SHOW_SONGS)
+    /* if (Surface.TextDisplay == SHOW_SONGS)
     {
         if (inSetlistMode() == 0) { DisplayText(0, 1, "R" + std::to_string(Surface.FirstShownRack + 1) + "-" + std::to_string(Surface.FirstShownRack + 8), 7); }
-    }
+    } */
 
-    for (x = 0; x < 8; x++)  // cycle through display positions
+    for (x = 0; x < Surface.ShowRackCount; x++)  // cycle through display positions
     {
         if (rackindex >= rackcount)  // clear the text if there's no song this high
         {
@@ -238,9 +237,9 @@ void LibMain::DisplayRacks(SurfaceRow Row, bool forcetocurrent)
         else { DisplayWidgetValue(Row, x, BUTTON_OFF); }
 
         // show songs/racks on LCD display if appropriate, alternating top and bottom rows so we can fit 12 letters per song
-        if (Surface.TextDisplay == SHOW_SONGS) {
+        /* if (Surface.TextDisplay == SHOW_SONGS) {
             if (inSetlistMode() == 0) { DisplayText(x, x % 2, rackname, (x == 7) ? 6 : 12); }
-        }
+        } */
 
         // Show the song name on the the OSC display and MCU display if appropriate
         oscwidget = THIS_PREFIX + (std::string) "_" + Row.WidgetID + "_active_" + std::to_string(x);
@@ -252,7 +251,8 @@ void LibMain::DisplayRacks(SurfaceRow Row, bool forcetocurrent)
         }
         rackindex++;
     }
-    // SendSoftbuttons(0, 7);
+    
+    if (Surface.ShowVariationCount) DisplayVariations(Row, -1);
 }
 
 void LibMain::DisplayRow(SurfaceRow Row)

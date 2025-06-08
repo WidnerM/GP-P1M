@@ -4,3 +4,5 @@
 std::vector <std::string> ParseWidgetName(const std::string& s, char delim);
 
 std::string cleanSysex(std::string s);
+
+std::string trim(std::string s);

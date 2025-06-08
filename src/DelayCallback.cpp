@@ -8,7 +8,7 @@
 
 LibMain* lib = new LibMain(nullptr); // mrw - this is needed as a reference to LibMain
 
-void RefreshTimer::timerCallback()
+void RefreshTimer::timerCallback()  // what gets done on the periodic timer
 {
     if (lib == nullptr)
         return;

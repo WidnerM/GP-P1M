@@ -56,7 +56,7 @@ public:
 
     std::vector<std::string> MidiOut = { MCU_OUT };
     std::vector<std::string> MidiIn = { MCU_IN };
-    std::string P1Port4Out = "MIDIOUT4 (iCON P1-M V1.08 )";
+    std::string P1Port4Out = "MIDIOUT4 (iCON P1-M V1.10 )";
 
     // from LibMain.cpp.  We make these to simplify sending the same midi message to all destinations if we have multiple destinations
     void sendMidiMessage(std::string MidiMessage);
@@ -290,6 +290,7 @@ public:
                     //scriptLog("MC: Callback for " + widgetName, 1);
                     if (control_bank.compare(Surface.Row[row].BankIDs[Surface.Row[row].ActiveBank]) == 0)  // if it's the active bank we update the OSC label
                     {
+
                         Value = getWidgetValue(widgetName);
                         setWidgetCaption(Surface.Row[row].WidgetPrefix + "_active_" + control_number, newCaption);
                         // Gig Performer doesn't send OSC updates for just the caption.  Need to move the value to make it send an OSC update.
@@ -299,6 +300,17 @@ public:
                 }
             }
         }
+        else if (widgetName == SHOWRACKS_WIDGETNAME)
+        {
+            Surface.ShowRackCount = std::min(std::stoi("0" + getWidgetCaption(widgetName)), 16);
+            Surface.ShowVariationCount = 16 - Surface.ShowRackCount;
+        }
+        else if (widgetName == SHOWSONGS_WIDGETNAME)
+        {
+            Surface.ShowSongCount = std::min(std::stoi("0" + getWidgetCaption(widgetName)), 16);
+            Surface.ShowSongpartCount = 16 - Surface.ShowSongCount;
+        }
+
     }
 
     void OnTempoChanged(double newValue) override
@@ -422,13 +434,14 @@ public:
         // scriptLog("MC: Song part changed to number " + std::to_string(newIndex), 1);
         // scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
 
-        for (row = 0; row < Surface.ButtonRows; row++)
+        /* for (row = 0; row < Surface.ButtonRows; row++)
         {
             if ((Surface.Row[row].Showing == SHOW_SONGPARTS) && (getCurrentSongIndex() >= 0))
             {
                 DisplaySongParts(Surface.Row[row], newIndex);
             }
-        }
+        } */
+        DisplayRow(Surface.Row[Surface.RackRow]);
     }
 
     // Called when entering song mode
@@ -471,7 +484,17 @@ public:
 
             // scriptLog("bS sees widget " + widgetname, 1);
 
-            if (widgetname == LAYOUT_WIDGETNAME)
+            if (widgetname == SHOWRACKS_WIDGETNAME)
+            {
+                Surface.ShowRackCount = std::min(std::stoi("0" + getWidgetCaption(widgetname)),16);
+                Surface.ShowVariationCount = 16 - Surface.ShowRackCount;
+            }
+            else if (widgetname == SHOWSONGS_WIDGETNAME)
+            {
+                Surface.ShowSongCount = std::min(std::stoi("0" + getWidgetCaption(widgetname)), 16);
+                Surface.ShowSongpartCount = 16 - Surface.ShowSongCount;
+            }
+            else if (widgetname == LAYOUT_WIDGETNAME)
             { 
                 listenForWidget(LAYOUT_WIDGETNAME, true);
             }
@@ -616,7 +639,7 @@ public:
         for (row = 0; row < Surface.ButtonRows; row++)
         {
             if (Surface.Row[row].Showing == SHOW_VARIATIONS) {
-                DisplayVariations(Surface.Row[row], newIndex);
+                // DisplayVariations(Surface.Row[row], newIndex);
             }
         }
 
@@ -630,12 +653,14 @@ public:
         Surface.reportWidgetChanges = Surface.reportWidgetMode;
 
         DisplayModeButtons();
+
+        DisplayRow(Surface.Row[Surface.RackRow]);
     }
 
     void OnOpen() override
     {
         // ExtensionWindow::initialize();
-        juce::MessageManager::getInstance()->callAsync([]() { });
+        juce::MessageManager::getInstance()->callAsync([]() { });  // this starts the juce library
         // scriptLog("starting timer", 0);
         // refreshTimer.surfacelink = Surface;
         refreshTimer.startTimer(100);
@@ -646,7 +671,7 @@ public:
         // Do any basic initializations
 
         // Register callbacks.
-        // We only register for OnGigLogaded() first because we don't want callbacks for all the other stuff until the Gig is fully loaded.
+        // We register for a minimal list, then add the rest in OnStatusChanged()
 
         registerCallback("OnOpen");
         registerCallback("OnStatusChanged");

@@ -5,6 +5,7 @@
 #include <sstream>
 #include <format>
 #include "LibMain.h"
+#include "General_Utils.h"
 
 
 void LibMain::ScheduledSoftsend()
@@ -20,7 +21,7 @@ void LibMain::ScheduledSoftsend()
         for (lines = 0; lines < (80 / P1M_NAMES_PER_PAGE); lines++)
         {
             hexsysex = P1M_NAME_START;
-            hexsysex = hexsysex.replace(21, 2, std::format("{:02x}", lines + 1)); // which chunk we're on
+            hexsysex = hexsysex.replace(P1M_NAME_PAGE*3, 2, std::format("{:02x}", lines + 1)); // which chunk we're on
             linetouched = false;
 
             for (loop = 0; loop < P1M_NAMES_PER_PAGE; loop++)
@@ -36,8 +37,6 @@ void LibMain::ScheduledSoftsend()
             }
             hexsysex += " f7";
 
-            // scriptLog(hexsysex, 0);
-            // scriptLog("Surface 8: " + surfacelink.SoftbuttonArray.Buttons[8].Label + " - refreshTimer 8: " + refreshTimer.softbuttonarray.Buttons[8].Label, 0);
 
             // only send the sysex for the line if it was touched, or some line was touched and it's the final line
             if (linetouched || (lines > 6 && touched)) {
@@ -104,9 +103,10 @@ void LibMain::SendSoftbuttons(uint8_t first, uint8_t last)
     // lambdaDemo("nothing");
 }
 
+// places text at center of 8 character field, padding with correct number of spaces
 std::string centerText(std::string text, int maxAmount = 8)
 {
-    return std::format("{:^8}", text);
+    return std::format("{:^8}", trim(text)); // std::regex_replace(text, std::regex("^ +| +$|( ) +"), "$1"));
 }
 
 // basic code to format the two-line softbutton display
@@ -119,15 +119,21 @@ P1Softbutton LibMain::formatSoftbuttonText(std::string label)
     if (newlabel.length() < 8)
     {
         Softbutton.Format = newlabel.length() % 2 ? 1 : 3; // even or odd number of characters, centered in display
-        Softbutton.Label = centerText(newlabel) + centerText("  ");
+        Softbutton.Label = centerText(newlabel) + centerText("  "); // we pad line two with spaces but they're ignored
     }
     else if (newlabel.length() == 8)
     {
         Softbutton.Format = 2; // full 8 character line, centered in display
         Softbutton.Label = centerText(newlabel) + centerText("  ");
     }
-    else
+    else if (newlabel.length() <= 16) // show everything if 16 or under
     {
+        Softbutton.Format = 7;
+        Softbutton.Label = centerText(newlabel.substr(0, 8)) + centerText(newlabel.substr(8, 8));
+    }
+    else // if more than 16 we strip vowels that aren't the first chracter of a word
+    {
+        newlabel = std::regex_replace(newlabel, std::regex(R"(\B[aeiouAEIOU])"), "");
         Softbutton.Format = 7;
         Softbutton.Label = centerText(newlabel.substr(0, 8)) + centerText(newlabel.substr(8, 8));
     }
@@ -169,7 +175,7 @@ std::string LibMain::SendSoftbuttonCodes(uint8_t first, uint8_t last)
     for (page = 0; page < 3; page++)
     {
         hexsysex = P1M_KEYDEF_START;
-        hexsysex = hexsysex.replace(21, 2, std::format("{:02x}", page + 1)); // replace page we're on
+        hexsysex = hexsysex.replace(3*P1M_NAME_PAGE, 2, std::format("{:02x}", page + 1)); // replace page we're on
 
         for (loop = 0; loop < P1M_KEYDEFS_PER_PAGE; loop++)
         {
@@ -206,35 +212,6 @@ std::string LibMain::SendSoftbuttonCodes(uint8_t first, uint8_t last)
     return "xxx";
 }
 
-
-// this entire routine is no longer needed following the bug fix starting with firmware 1.08 for the P1-M
-/* void LibMain::DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint8_t maxlength)
-{
-    std::string hexmessage, subtext, binmessage;
-
-    // Could probably handle this better...  Adding blanks to the text to display so we're guaranteed to clear whatever's there, then just use front 'maxlength' chars
-    if (column < 8 && row < 4) {
-
-        // we need to write an entire line at once, so we store the two lines in a global variable and
-        // splice in our changes then write the whole thing to the P1-M
-        subtext = cleanSysex(text);
-        subtext = subtext.substr(0, maxlength) + "                                                                                                               ";
-        int insertpoint = (row-2) * 0x38 + 7 * column;
-
-
-        Surface.P1MText.replace(insertpoint, maxlength, subtext.substr(0, (maxlength % 7 == 0) ? maxlength : maxlength + 7 - maxlength % 7));
-
-        binmessage = gigperformer::sdk::GPUtils::hex2binaryString((std::string) P1M_TEXT_HDR + " 38");
-        // binmessage += gigperformer::sdk::GPUtils::hex2binaryString("38"); // have to start writing at second line due to but in P1-M firmware
-        binmessage += Surface.P1MText;
-        binmessage += gigperformer::sdk::GPUtils::hex2binaryString("f7");
-        sendMidiMessage(binmessage);
-
-        // scriptLog("P1M: col: " + std::to_string(column) + " row: " + std::to_string(row) + " max: " + std::to_string(maxlength) + text, 0);
-        // scriptLog("P1M: display " + Surface.P1MText, 0);
-        
-    }
-} */
 
 // P1M color bars - we have to send them all at once in one sysex
 void LibMain::DisplayP1MColorbars()

@@ -14,9 +14,19 @@
 #define KNOB_BUTTON_PREFIX "mc_push"
 #define FUNCTION_PREFIX "mc_fn"
 #define VIEW_PREFIX "mc_view"
-#define ROW_PREFIX_ARRAY {RECORD_PREFIX, SOLO_PREFIX, MUTE_PREFIX, SELECT_PREFIX, FUNCTION_PREFIX, VIEW_PREFIX, KNOB_BUTTON_PREFIX, FADER_PREFIX, KNOB_PREFIX}
+#define SOFTBUTTON_PREFIX "mc_sb"
+#define ROW_PREFIX_ARRAY {RECORD_PREFIX, SOLO_PREFIX, MUTE_PREFIX, SELECT_PREFIX, SOFTBUTTON_PREFIX, KNOB_BUTTON_PREFIX, FADER_PREFIX, KNOB_PREFIX}
+// #define ROW_PREFIX_ARRAY {RECORD_PREFIX, SOLO_PREFIX, MUTE_PREFIX, SELECT_PREFIX, FUNCTION_PREFIX, VIEW_PREFIX, KNOB_BUTTON_PREFIX, FADER_PREFIX, KNOB_PREFIX}
 
-
+#define RECORD_ROW 0
+#define SOLO_ROW 1
+#define MUTE_ROW 2
+#define SELECT_ROW 3
+#define FUNCTION_ROW 4
+#define SOFTBUTTON_ROW 4
+#define KNOB_BUTTON_ROW 5
+#define FADER_ROW 6
+#define KNOB_ROW 7
 
 #define RECORD_TAG "rec"
 #define SOLO_TAG "solo"
@@ -27,15 +37,16 @@
 #define KNOB_BUTTON_TAG "push"
 #define FUNCTION_TAG "fn"
 #define VIEW_TAG "view"
+#define SOFTBUTTON_TAG "sb"
 
-#define TAG_ARRAY {RECORD_TAG, SOLO_TAG, MUTE_TAG, SELECT_TAG, FUNCTION_TAG, VIEW_TAG, KNOB_BUTTON_TAG, FADER_TAG, KNOB_TAG}
-#define ROW_LABEL_ARRAY { "Rec", "Solo", "Mute", "Sel", "Fn", "View", "KPush" , "Fader", "Knob"}
+#define TAG_ARRAY {RECORD_TAG, SOLO_TAG, MUTE_TAG, SELECT_TAG, SOFTBUTTON_TAG, KNOB_BUTTON_TAG, FADER_TAG, KNOB_TAG}
+#define ROW_LABEL_ARRAY { "Rec", "Solo", "Mute", "Sel", "Softbutton", "KPush" , "Fader", "Knob"}
 
 #define BUTTON_TYPE "Button"
 #define FADER_TYPE "Fader"
 #define KNOB_TYPE "Knob"
 #define KNOB_BUTTON_TYPE "KButton"
-#define ROW_TYPE_ARRAY {BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, KNOB_BUTTON_TYPE, FADER_TYPE, KNOB_TYPE}
+#define ROW_TYPE_ARRAY {BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, KNOB_BUTTON_TYPE, FADER_TYPE, KNOB_TYPE}
 
 
 #define SHOW_SONGS 0
@@ -48,18 +59,7 @@
 #define SHOW_FADERS 7
 #define SHOW_KNOB_BUTTONS 8
 #define SHOW_ASSIGNED 9
-#define SHOW_ARRAY { SHOW_BUTTONS, SHOW_BUTTONS, SHOW_SONGPARTS, SHOW_SONGS, SHOW_BUTTONS, SHOW_BUTTONS, SHOW_KNOB_BUTTONS, SHOW_FADERS, SHOW_KNOBS}
-
-
-#define RECORD_ROW 0
-#define SOLO_ROW 1
-#define MUTE_ROW 2
-#define SELECT_ROW 3
-#define FUNCTION_ROW 4
-#define VIEW_ROW 5
-#define KNOB_BUTTON_ROW 6
-#define FADER_ROW 7
-#define KNOB_ROW 8
+#define SHOW_ARRAY { SHOW_BUTTONS, SHOW_BUTTONS, SHOW_SONGS, SHOW_BUTTONS, SHOW_BUTTONS, SHOW_KNOB_BUTTONS, SHOW_FADERS, SHOW_KNOBS}
 
 
 #define SONGSRACKS_SELECT 0
@@ -262,8 +262,8 @@ public:
 class SurfaceClass
 {
 public:
-	SurfaceRow Row[9];
-	uint8_t ButtonRows = 7;
+	SurfaceRow Row[8];
+	uint8_t ButtonRows = 6;
 	std::string IgnoreWidget = "";
 	bool reportWidgetChanges = true; // for MCUs indicates whether we dedicate a display line to showing value of any touched widget
 	bool reportWidgetMode = false; // for P1-M we're turning that entirely off but keeping the MCU code generally intact
@@ -283,6 +283,10 @@ public:
 	uint8_t ButtonLayout = 0;
 	uint8_t RackRow = 255;
 	uint8_t VarRow = 255;
+	uint8_t ShowSongCount = 8;
+	uint8_t ShowSongpartCount = 8;
+	uint8_t ShowRackCount = 8;
+	uint8_t ShowVariationCount = 8;
 
 
 	bool Initialize()
@@ -296,10 +300,10 @@ public:
 		std::string row_types[] = ROW_TYPE_ARRAY;
 		std::string row_labels[] = ROW_LABEL_ARRAY;
 		uint8_t show_array[] = SHOW_ARRAY;
-		uint8_t midi_commands[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0xB0, 0xE0, 0xB0 };
-		int row_columns[] = { 8, 8, 8, 8, 8, 8, 8, 9, 8 };
+		uint8_t midi_commands[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0xB0, 0xE0, 0xB0 };
+		int row_columns[] = { 8, 8, 8, 8, 16, 8, 9, 8 };
 
-		uint8_t first_midi[] = { SID_RECORD_ARM_BASE, SID_SOLO_BASE, SID_MUTE_BASE, SID_SELECT_BASE, SID_FUNCTION_BASE, SID_VIEW_BASE, SID_VPOD_PUSH_BASE, FADER_0, KNOB_0};
+		uint8_t first_midi[] = { SID_RECORD_ARM_BASE, SID_SOLO_BASE, SID_MUTE_BASE, SID_SELECT_BASE, SID_FUNCTION_BASE, SID_VPOD_PUSH_BASE, FADER_0, KNOB_0};
 
 		// basic Surface structure initializations
 		for (x = 0; x < std::size(Row); x++)

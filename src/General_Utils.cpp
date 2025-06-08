@@ -8,6 +8,7 @@
 
 // Utility functions that don't depend on anything in GP or specific control surfaces
 
+
 // trim from start (in place)
 static inline void ltrim(std::string& s) {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
@@ -22,12 +23,25 @@ inline void rtrim(std::string& s) {
         }).base(), s.end());
 }
 
-// trim from both ends (in place)
+/* trim from both ends(in place)
 inline void trim(std::string& s) {
     rtrim(s);
     ltrim(s);
-}
+} */
 
+std::string trim(std::string str) {
+    // Trim from the beginning
+    str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+        }));
+
+    // Trim from the end
+    str.erase(std::find_if(str.rbegin(), str.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+        }).base(), str.end());
+
+    return str;
+}
 
 std::vector <std::string> ParseWidgetName(const std::string& s, char delim) {
     std::vector<std::string> result;

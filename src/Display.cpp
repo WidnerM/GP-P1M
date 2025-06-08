@@ -240,7 +240,7 @@ void LibMain::SyncBankIDs(uint8_t syncrow)
 {
     if (Surface.Row[syncrow].BankValid()) {
         std::string rowname = Surface.Row[syncrow].ActiveBankID();
-        for (int x = 0; x < 9; x++)
+        for (int x = 0; x < std::size(Surface.Row); x++)
         {
             if (Surface.Row[x].makeActiveBank(rowname)) DisplayRow(Surface.Row[x]);
         }
