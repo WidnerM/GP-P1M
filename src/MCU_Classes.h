@@ -281,7 +281,7 @@ public:
 	int FirstShownRack = 0;
 	uint8_t CommandButtons[10] = DEFAULT_COMMAND_BUTTONS;
 	uint8_t ButtonLayout = 0;
-	uint8_t RackRow = 255;
+	uint8_t RackRow = 4; // always putting this on the softbutton row for P1
 	uint8_t VarRow = 255;
 	uint8_t ShowSongCount = 8;
 	uint8_t ShowSongpartCount = 8;
@@ -319,6 +319,8 @@ public:
 		}
 		// Row[3].Showing = SHOW_SONGS;
 		// Row[2].Showing = SHOW_SONGPARTS;
+
+		RackRow = 4; // for P1-M the racks are always on the softbutton row
 
 		// P1-M Softbutton array initialization - label can be up to 14 characters (2 lines of 7)
 		for (x = 0; x < 80; x++)

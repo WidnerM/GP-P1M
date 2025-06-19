@@ -65,13 +65,13 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
         else if (button == Surface.CommandButtons[SONGS_BANK_UP])   // next song/rack bank
         {
             if (inSetlistMode() == 1) { Surface.FirstShownSong += Surface.ShowSongCount; }
-            else { Surface.FirstShownRack += Surface.ShowSongCount; }
+            else { Surface.FirstShownRack += Surface.ShowRackCount; }
             if (Surface.RackRow < Surface.ButtonRows) { DisplayRow(Surface.Row[Surface.RackRow], false); }
         }
         else if (button == Surface.CommandButtons[SONGS_BANK_DOWN])  // prior Song bank
         {
             if (inSetlistMode() == 1) { Surface.FirstShownSong -= Surface.ShowSongCount; }
-            else { Surface.FirstShownRack -= Surface.ShowSongCount; }
+            else { Surface.FirstShownRack -= Surface.ShowRackCount; }
             if (Surface.RackRow < Surface.ButtonRows) { DisplayRow(Surface.Row[Surface.RackRow], false); }
         }
         else if (button == Surface.CommandButtons[SETLIST_TOGGLE])  // Toggle between in and out of Setlist mode
@@ -143,7 +143,7 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
                         if ((songnumber + Surface.FirstShownRack) < getRackspaceCount())
                         {
                             Surface.reportWidgetChanges = false;
-                            switchToRackspace(songnumber + Surface.FirstShownRack, 0);
+                            switchToRackspaceName(getRackspaceName(songnumber + Surface.FirstShownRack));
                             Surface.reportWidgetChanges = Surface.reportWidgetMode;
                         }
                     }

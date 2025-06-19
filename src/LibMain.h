@@ -453,7 +453,7 @@ public:
         // scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
 
         DisplayTopLeft(0, "");
-
+        
         if (Surface.RackRow < Surface.ButtonRows)
         {
             Surface.Row[Surface.RackRow].Showing = (mode == 1) ? SHOW_SONGS : SHOW_RACKSPACES;
@@ -589,7 +589,7 @@ public:
         // scriptLog("Done buildSurface", 1);
 
         // Set up which rows, if any, show racks and variations
-        SetRowAssignments();
+        // SetRowAssignments();  // for P1 series we always show racks/variations or songs/songparts on softbuttons
 
         // Button row initializations
         for (row = 0; row < Surface.ButtonRows; row++) {
