@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
+set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "Minimum OS X deployment version")
 
 # Let's choose a name and version for the extension. Change the name to your
 # liking. The version should be a string like "1.0".
