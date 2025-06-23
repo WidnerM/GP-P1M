@@ -149,7 +149,7 @@ void LibMain::DisplayWidgetValue(SurfaceRow Row, uint8_t column, double value)
 
     MidiMessage[0] = Row.MidiCommand;
 
-    if (Row.Type == BUTTON_TYPE)
+    if (Row.Type == BUTTON_TYPE || Row.Type == SOFTBUTTON_TYPE)
     {
         MidiMessage[1] = Row.FirstID + column;
         MidiMessage[2] = (value != 0) ? BUTTON_LIT : BUTTON_OFF;
@@ -182,12 +182,12 @@ void LibMain::DisplayButton(uint8_t button, uint8_t value)
 }
 
 // light buttons to indicate what display mode we're in - showing faders, knobs, or songs/racks on the LCD display
-void LibMain::DisplayModeButtons()
+/* void LibMain::DisplayModeButtons()
 {
     sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Surface.CommandButtons[FADERS_SELECT], (Surface.TextDisplay == SHOW_FADERS) ? BUTTON_LIT : BUTTON_OFF, 0));
     sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Surface.CommandButtons[KNOBS_SELECT], (Surface.TextDisplay == SHOW_KNOBS) ? BUTTON_LIT : BUTTON_OFF, 0));
     sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Surface.CommandButtons[SONGSRACKS_SELECT], (Surface.TextDisplay == SHOW_SONGS) ? BUTTON_LIT : BUTTON_OFF, 0));
-}
+} */
 
 // Adjust row assignments for where Racks/Songs/Variations/Songparts are shown
 void LibMain::SetRowAssignments()
@@ -203,33 +203,33 @@ void LibMain::SetRowAssignments()
         Surface.Row[x].Showing = SHOW_ASSIGNED;
     }
 
-    if (widgetExists(RACKROW_WIDGETNAME)) {
-        widgetval = getWidgetCaption(RACKROW_WIDGETNAME);
-        for (x = 0; x < Surface.ButtonRows; x++)
-        {
-            if (row_tags[x] == widgetval)
-            {
-                Surface.RackRow = x;
-                Surface.Row[Surface.RackRow].Showing = (setlistmode) ? SHOW_SONGS : SHOW_RACKSPACES;
-                DisplayRow(Surface.Row[Surface.RackRow], true);
-                break;
-            }
-        }
-    }
+    //if (widgetExists(RACKROW_WIDGETNAME)) {
+    //    widgetval = getWidgetCaption(RACKROW_WIDGETNAME);
+    //    for (x = 0; x < Surface.ButtonRows; x++)
+    //    {
+    //        if (row_tags[x] == widgetval)
+    //        {
+    //            Surface.RackRow = x;
+    //            Surface.Row[Surface.RackRow].Showing = (setlistmode) ? SHOW_SONGS : SHOW_RACKSPACES;
+    //            DisplayRow(Surface.Row[Surface.RackRow], true);
+    //            break;
+    //        }
+    //    }
+    //}
 
-    if (widgetExists(VARROW_WIDGETNAME)) {
-        widgetval = getWidgetCaption(VARROW_WIDGETNAME);
-        for (x = 0; x < Surface.ButtonRows; x++)
-        {
-            if (row_tags[x] == widgetval)
-            {
-                Surface.VarRow = x;
-                Surface.Row[Surface.VarRow].Showing = (setlistmode) ? SHOW_SONGPARTS : SHOW_VARIATIONS;
-                DisplayRow(Surface.Row[Surface.VarRow], true);
-                break;
-            }
-        }
-    }
+    //if (widgetExists(VARROW_WIDGETNAME)) {
+    //    widgetval = getWidgetCaption(VARROW_WIDGETNAME);
+    //    for (x = 0; x < Surface.ButtonRows; x++)
+    //    {
+    //        if (row_tags[x] == widgetval)
+    //        {
+    //            Surface.VarRow = x;
+    //            Surface.Row[Surface.VarRow].Showing = (setlistmode) ? SHOW_SONGPARTS : SHOW_VARIATIONS;
+    //            DisplayRow(Surface.Row[Surface.VarRow], true);
+    //            break;
+    //        }
+    //    }
+    //}
     // scriptLog("RackRow: " + std::to_string(Surface.RackRow), 1);
     // scriptLog("VarRow: " + std::to_string(Surface.VarRow), 1);
 }
@@ -284,7 +284,14 @@ void LibMain::DisplayFaders(SurfaceRow Row)
 
     if (! Row.BankValid()) // if there are no FaderBanks or ActiveFaderBank is out of range we clear the display
     {
-        if ((Surface.TextDisplay == SHOW_FADERS && Row.WidgetID == "f") || (Surface.TextDisplay == SHOW_KNOBS && Row.WidgetID == "k")) { ClearMCUDisplay(); }
+        // if ((Surface.TextDisplay == SHOW_FADERS && Row.WidgetID == "f") || (Surface.TextDisplay == SHOW_KNOBS && Row.WidgetID == "k")) { ClearMCUDisplay(); }
+        if (Row.Type == KNOB_TYPE) { ClearMCUDisplay(); }
+        else if (Row.Type == FADER_TYPE) { ClearMCUDisplay(2); }
+        else for (x = 0; x < Row.Columns; x++)
+        {
+            DisplayWidgetValue(Row, (uint8_t)x, 0);
+            Surface.SoftbuttonArray.set(x, formatSoftbuttonText("-"));
+        }
     }
     else
     { // Set the bank indicator widgets, if they exist
@@ -294,32 +301,6 @@ void LibMain::DisplayFaders(SurfaceRow Row)
             // scriptLog("DisplayFaders setting bank indicator " + widgetname, 1);
             if (widgetExists(widgetname)) {
                 setWidgetValue(widgetname, (x == Row.ActiveBank) ? 1.0 : 0.3); // light up panel for active bank, otherwise turn it off
-            }
-        }
-
-        if ((Surface.TextDisplay == SHOW_FADERS && Row.WidgetID == "f") || (Surface.TextDisplay == SHOW_KNOBS && Row.WidgetID == "k"))
-        {
-            // check for a bank name on mc_fp_[ActiveBank] widget & display it on upper right of display
-            widgetname = Row.WidgetPrefix + (std::string)"p_" + Row.BankIDs[Row.ActiveBank];
-            if (widgetExists(widgetname))
-            {
-                if (Surface.TextDisplay != SHOW_SONGS) {
-                    DisplayBankInfo(getWidgetCaption(widgetname) + ":" + Row.RowLabel + " " + Row.BankIDs[Row.ActiveBank]);
-                }
-            }
-            else // if a p widnget doesn't exist for the bank, look for a name on the i widget
-            {
-                widgetname = Row.WidgetPrefix + (std::string)"_" + Row.BankIDs[Row.ActiveBank] + "_i";
-                if (widgetExists(widgetname))
-                {
-                    if (Surface.TextDisplay != SHOW_SONGS) {
-                        DisplayBankInfo(getWidgetCaption(widgetname) + ":" + Row.RowLabel + " " + Row.BankIDs[Row.ActiveBank]);
-                    }
-                }
-
-                else if (Surface.TextDisplay != SHOW_SONGS) {
-                    DisplayBankInfo(Row.RowLabel + " " + Row.BankIDs[Row.ActiveBank]);
-                }
             }
         }
     }
@@ -353,11 +334,12 @@ void LibMain::DisplayFaders(SurfaceRow Row)
                     DisplayText(x, Row.Type == FADER_TYPE ? 3 : 0, Label, 7);
                     DisplayText(x, Row.Type == FADER_TYPE ? 2 : 1, TextValue, 7);
                 }
+                else if (Row.Type == SOFTBUTTON_TYPE)
+                {
+                    Surface.SoftbuttonArray.set(x, formatSoftbuttonText(Label));
+                }
             }
-            else if ((Row.Type == KNOB_TYPE && Surface.TextDisplay == SHOW_KNOBS) || (Row.Type == FADER_TYPE && Surface.TextDisplay == SHOW_FADERS))
-            {
-                DisplayText(x, 1, Label, 7); // show the label on the MCU LCD by sending midi
-            }
+
         }
         else {
             Label = " ";
@@ -377,6 +359,12 @@ void LibMain::DisplayFaders(SurfaceRow Row)
     if (Row.Type == FADER_TYPE) DisplayP1MColorbars();
 }
 
+// Displays Faders or Knobs on the LCD display
+void LibMain::DisplaySoftbuttons(SurfaceRow Row)
+{
+    scriptLog("Showing softbuttons", 0);
+    DisplayFaders(Row);
+}
 
 void LibMain::DisplayButtonRow(SurfaceRow Row, uint8_t firstbutton, uint8_t number)
 {

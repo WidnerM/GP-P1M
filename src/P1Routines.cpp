@@ -8,12 +8,16 @@
 #include "General_Utils.h"
 
 
+// routine that is called periodically to send softbutton text to the P1-M
+// if we send data too often it appears to overflow the P1-M input buffer resulting in gibberish displayed
+// we store all of the softbutton data in an array, then periodically send it out
 void LibMain::ScheduledSoftsend()
 {
     std::string hexsysex, sysex;
     uint8_t lines, loop, position;
-    bool touched, linetouched;
+    bool touched, linetouched;  // to reduce data volume we only send data if the sysex string it belongs to changed
 
+    // if nothing has changed we don't send anything
     if (Surface.SoftbuttonArray.Dirty == true)
     {
         Surface.SoftbuttonArray.Dirty = false;
@@ -43,7 +47,7 @@ void LibMain::ScheduledSoftsend()
                 // scriptLog(hexsysex, 0);
                 // sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(hexsysex));
                 sysex = gigperformer::sdk::GPUtils::hex2binaryString(hexsysex);
-                sendMidiMessageToMidiOutDevice(Surface.PortFour, sysex);
+                sendMidiMessageToMidiOutDevice(Surface.PortFourOut, sysex);
             }
             // else scriptLog("P1M: line " + std::to_string(lines) + " skipped", 0);
         }

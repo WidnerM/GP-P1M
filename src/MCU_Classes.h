@@ -45,8 +45,9 @@
 #define BUTTON_TYPE "Button"
 #define FADER_TYPE "Fader"
 #define KNOB_TYPE "Knob"
+#define SOFTBUTTON_TYPE "Softbutton"
 #define KNOB_BUTTON_TYPE "KButton"
-#define ROW_TYPE_ARRAY {BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, KNOB_BUTTON_TYPE, FADER_TYPE, KNOB_TYPE}
+#define ROW_TYPE_ARRAY {BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, SOFTBUTTON_TYPE, KNOB_BUTTON_TYPE, FADER_TYPE, KNOB_TYPE}
 
 
 #define SHOW_SONGS 0
@@ -59,7 +60,7 @@
 #define SHOW_FADERS 7
 #define SHOW_KNOB_BUTTONS 8
 #define SHOW_ASSIGNED 9
-#define SHOW_ARRAY { SHOW_BUTTONS, SHOW_BUTTONS, SHOW_SONGS, SHOW_BUTTONS, SHOW_BUTTONS, SHOW_KNOB_BUTTONS, SHOW_FADERS, SHOW_KNOBS}
+// #define SHOW_ARRAY { SHOW_BUTTONS, SHOW_BUTTONS, SHOW_SONGS, SHOW_BUTTONS, SHOW_BUTTONS, SHOW_KNOB_BUTTONS, SHOW_FADERS, SHOW_KNOBS}
 
 
 #define SONGSRACKS_SELECT 0
@@ -268,21 +269,23 @@ public:
 	bool reportWidgetChanges = true; // for MCUs indicates whether we dedicate a display line to showing value of any touched widget
 	bool reportWidgetMode = false; // for P1-M we're turning that entirely off but keeping the MCU code generally intact
 	bool P1MType = true;
-	// std::string P1MText = "                                                                                                               ";
 	P1SoftbuttonArray SoftbuttonArray;
 	std::string InPort = "";
 	std::string OutPort = "";
-	std::string PortFour = "";
+	std::string PortFourOut = "";
+	std::string PortFourIn = "";
+
 	
 	int P1MColorbars[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
-	uint8_t TextDisplay = SHOW_FADERS;
+	// uint8_t TextDisplay = SHOW_FADERS; // eliminated this for P1-M
 	int FirstShownSong = 0;
 	int FirstShownRack = 0;
-	uint8_t CommandButtons[10] = DEFAULT_COMMAND_BUTTONS;
+	uint8_t CommandButtons[10] = ICON_P1M_COMMAND_BUTTONS;
 	uint8_t ButtonLayout = 0;
-	uint8_t RackRow = 4; // always putting this on the softbutton row for P1
-	uint8_t VarRow = 255;
+	uint8_t RackRow = SOFTBUTTON_ROW; // always putting this on the softbutton row for P1
+	bool ShowRacksSongs = true; // whether to show racks/songs on softbuttons page 1
+	// uint8_t VarRow = 255;
 	uint8_t ShowSongCount = 8;
 	uint8_t ShowSongpartCount = 8;
 	uint8_t ShowRackCount = 8;
@@ -299,7 +302,7 @@ public:
 		std::string row_tags[] = TAG_ARRAY;
 		std::string row_types[] = ROW_TYPE_ARRAY;
 		std::string row_labels[] = ROW_LABEL_ARRAY;
-		uint8_t show_array[] = SHOW_ARRAY;
+		// uint8_t show_array[] = SHOW_ARRAY;
 		uint8_t midi_commands[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0xB0, 0xE0, 0xB0 };
 		int row_columns[] = { 8, 8, 8, 8, 16, 8, 9, 8 };
 

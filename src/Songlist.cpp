@@ -39,11 +39,6 @@ void LibMain::DisplaySongs(SurfaceRow Row, bool forcetocurrent)
     }
     songindex = Surface.FirstShownSong;
 
-    /* if (Surface.TextDisplay == SHOW_SONGS)
-    {
-        if (inSetlistMode() == 1) { DisplayText(0, 1, "S" + std::to_string(Surface.FirstShownSong + 1) + "-" + std::to_string(Surface.FirstShownSong + 8), 7); }
-    } */
-
     for (x = 0; x < Surface.ShowSongCount; x++)  // cycle through display positions
     {
         if (songindex >= songcount)  // clear the text if there's no song this high
@@ -170,9 +165,7 @@ void LibMain::DisplayVariations(SurfaceRow Row, int current)
     }
 }
 
-//  This displays the Racks on a button row
-//  Need to build logic for whether to display them on the MCU display panel and how to display them
-//  For now we're just managing this on widgets for OSC display
+//  This displays the Racks on the softbutton row
 void LibMain::DisplayRacks(SurfaceRow Row, bool forcetocurrent)
 {
     int x, rackindex, current, rackcount;
@@ -262,10 +255,17 @@ void LibMain::DisplayRow(SurfaceRow Row)
 
 void LibMain::DisplayRow(SurfaceRow Row, bool forcetocurrent)
 {
-    if (Row.Showing == SHOW_SONGS) { DisplaySongs(Row, forcetocurrent); }
-    else if (Row.Showing == SHOW_SONGPARTS) { DisplaySongParts(Row, forcetocurrent); }
-    else if (Row.Showing == SHOW_VARIATIONS) { DisplayVariations(Row, -1); }
-    else if (Row.Showing == SHOW_RACKSPACES) { DisplayRacks(Row, forcetocurrent); }
+    if (Row.Type == SOFTBUTTON_TYPE) {
+        if (Surface.ShowRacksSongs)
+        {
+            if (Row.Showing == SHOW_SONGS) { DisplaySongs(Row, forcetocurrent); }
+            else { DisplayRacks(Row, forcetocurrent); }
+        }
+        else { DisplaySoftbuttons(Row); }
+        DisplayButton(SID_FADERBANK_FLIP, Surface.ShowRacksSongs ? 127 : 0);
+    }
+    // else if (Row.Showing == SHOW_SONGPARTS) { DisplaySongParts(Row, forcetocurrent); }
+    // else if (Row.Showing == SHOW_VARIATIONS) { DisplayVariations(Row, -1); }
     else if (Row.Type == FADER_TYPE || Row.Type == KNOB_TYPE) { DisplayFaders(Row); }
     else { DisplayButtonRow(Row, 0, 8); }
 }

@@ -15,11 +15,11 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
     if (value == 127) {  // only process button downs
         if (button == Surface.CommandButtons[FADERS_BANK_UP])  // next Fader bank
         {
-            if (Surface.TextDisplay == SHOW_KNOBS)
-            {
-                Surface.TextDisplay = SHOW_FADERS;
-                DisplayModeButtons();
-            }
+            //if (Surface.TextDisplay == SHOW_KNOBS)
+            //{
+            //    Surface.TextDisplay = SHOW_FADERS;
+            //    // DisplayModeButtons();
+            //}
             if (Surface.Row[FADER_ROW].IncrementBank())
             {
                 SyncBankIDs(FADER_ROW);
@@ -28,11 +28,11 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
         }
         else if (button == Surface.CommandButtons[FADERS_BANK_DOWN])  // prior Fader bank
         {
-            if (Surface.TextDisplay == SHOW_KNOBS)
-            {
-                Surface.TextDisplay = SHOW_FADERS;
-                DisplayModeButtons();
-            }
+            //if (Surface.TextDisplay == SHOW_KNOBS)
+            //{
+            //    Surface.TextDisplay = SHOW_FADERS;
+            //    // DisplayModeButtons();
+            //}
             if (Surface.Row[FADER_ROW].DecrementBank())
             {
                 SyncBankIDs(FADER_ROW);
@@ -40,11 +40,11 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
         }
         else if (button == Surface.CommandButtons[KNOBS_BANK_UP])  // next Knob bank
         {
-            if (Surface.TextDisplay == SHOW_FADERS)
-            {
-                Surface.TextDisplay = SHOW_KNOBS;
-                DisplayModeButtons();
-            }
+            //if (Surface.TextDisplay == SHOW_FADERS)
+            //{
+            //    Surface.TextDisplay = SHOW_KNOBS;
+            //    // DisplayModeButtons();
+            //}
             if (Surface.Row[KNOB_ROW].IncrementBank())
             {
                 SyncBankIDs(KNOB_ROW);
@@ -52,11 +52,11 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
         }
         else if (button == Surface.CommandButtons[KNOBS_BANK_DOWN])  // prior Knob bank
         {
-            if (Surface.TextDisplay == SHOW_FADERS)
-            {
-                Surface.TextDisplay = SHOW_KNOBS;
-                DisplayModeButtons();
-            }
+            //if (Surface.TextDisplay == SHOW_FADERS)
+            //{
+            //    Surface.TextDisplay = SHOW_KNOBS;
+            //    // DisplayModeButtons();
+            //}
             if (Surface.Row[KNOB_ROW].DecrementBank())
             {
                 SyncBankIDs(KNOB_ROW);
@@ -82,22 +82,22 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
         }
         else if (button == Surface.CommandButtons[FADERS_SELECT]) // show faders
         {
-            if (Surface.TextDisplay == SHOW_SONGS) { DisplayText(0, 0, "", 28); }  // clear upper left area if we're coming out of Songs/Racks display
-            Surface.TextDisplay = SHOW_FADERS;
-            DisplayModeButtons();
+            //if (Surface.TextDisplay == SHOW_SONGS) { DisplayText(0, 0, "", 28); }  // clear upper left area if we're coming out of Songs/Racks display
+            //Surface.TextDisplay = SHOW_FADERS;
+            //// DisplayModeButtons();
             DisplayFaders(Surface.Row[FADER_ROW]);
         }
         else if (button == Surface.CommandButtons[KNOBS_SELECT]) // show knobs
         {
-            if (Surface.TextDisplay == SHOW_SONGS) { DisplayText(0, 0, "", 28); }  // clear upper left area if we're coming out of Songs/Racks display
-            Surface.TextDisplay = SHOW_KNOBS;
-            DisplayModeButtons();
+            //if (Surface.TextDisplay == SHOW_SONGS) { DisplayText(0, 0, "", 28); }  // clear upper left area if we're coming out of Songs/Racks display
+            //Surface.TextDisplay = SHOW_KNOBS;
+            //// DisplayModeButtons();
             DisplayFaders(Surface.Row[KNOB_ROW]);
         }
         else if (button == Surface.CommandButtons[SONGSRACKS_SELECT]) // show songlist
         {
-            Surface.TextDisplay = SHOW_SONGS;
-            DisplayModeButtons();
+            // Surface.TextDisplay = SHOW_SONGS;
+            // DisplayModeButtons();
             if (Surface.RackRow < Surface.ButtonRows) { DisplayRow(Surface.Row[Surface.RackRow], false); }
         }
         else if (button == SID_TRANSPORT_PLAY) // 
@@ -108,57 +108,65 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
         {
             setPlayheadState(false);
         }
+        else if (button == SID_FADERBANK_FLIP)
+        {
+            Surface.ShowRacksSongs = !Surface.ShowRacksSongs;
+            DisplayButton(SID_FADERBANK_FLIP, Surface.ShowRacksSongs ? 127 : 0);
+            DisplayRow(Surface.Row[Surface.RackRow], false);
+        }
         else for (x = 0; x < Surface.ButtonRows ; x++)
         {
             if ((button >= Surface.Row[x].FirstID) && (button < Surface.Row[x].FirstID + Surface.Row[x].Columns) )
             {
-                if (Surface.Row[x].Showing == SHOW_SONGS) // if the Row is in song select mode, process it as a song select
+                if (Surface.Row[x].Type == SOFTBUTTON_TYPE && Surface.ShowRacksSongs)
                 {
-                    songnumber = button - Surface.Row[x].FirstID; // the column number of the button
-                    if (songnumber < Surface.ShowSongCount)
+                    if (Surface.Row[x].Showing == SHOW_SONGS) // if the Row is in song select mode, process it as a song select
                     {
-                        if ((songnumber + Surface.FirstShownSong) < getSongCount())
+                        songnumber = button - Surface.Row[x].FirstID; // the column number of the button
+                        if (songnumber < Surface.ShowSongCount)
                         {
-                            Surface.reportWidgetChanges = false;
-                            switchToSong(songnumber + Surface.FirstShownSong, 0);
-                            Surface.reportWidgetChanges = Surface.reportWidgetMode;
+                            if ((songnumber + Surface.FirstShownSong) < getSongCount())
+                            {
+                                Surface.reportWidgetChanges = false;
+                                switchToSong(songnumber + Surface.FirstShownSong, 0);
+                                Surface.reportWidgetChanges = Surface.reportWidgetMode;
+                            }
+                        }
+                        else
+                        {
+                            uint8_t songpartnumber = songnumber - Surface.ShowSongCount; // 
+                            if (songpartnumber < getSongpartCount(getCurrentSongIndex()))
+                            {
+                                Surface.reportWidgetChanges = false;
+                                switchToSongPart(songpartnumber);
+                                Surface.reportWidgetChanges = Surface.reportWidgetMode;
+                            }
                         }
                     }
-                    else
+                    else if (Surface.Row[x].Showing == SHOW_RACKSPACES) // if the Row is in Rackspace mode, process it as a Rackspace select
                     {
-                        uint8_t songpartnumber = songnumber - Surface.ShowSongCount; // 
-                        if (songpartnumber < getSongpartCount(getCurrentSongIndex()))
+                        songnumber = button - Surface.Row[x].FirstID; // the column number of the button
+                        if (songnumber < Surface.ShowRackCount)
                         {
-                            Surface.reportWidgetChanges = false;
-                            switchToSongPart(songpartnumber);
-                            Surface.reportWidgetChanges = Surface.reportWidgetMode;
+                            if ((songnumber + Surface.FirstShownRack) < getRackspaceCount())
+                            {
+                                Surface.reportWidgetChanges = false;
+                                switchToRackspaceName(getRackspaceName(songnumber + Surface.FirstShownRack));
+                                Surface.reportWidgetChanges = Surface.reportWidgetMode;
+                            }
+                        }
+                        else
+                        {
+                            uint8_t songpartnumber = songnumber - Surface.ShowRackCount; // 
+                            if (songpartnumber < getVariationCount(getCurrentRackspaceIndex()))
+                            {
+                                Surface.reportWidgetChanges = false;
+                                switchToVariation(songpartnumber);
+                                Surface.reportWidgetChanges = Surface.reportWidgetMode;
+                            }
                         }
                     }
                 }
-                else if (Surface.Row[x].Showing == SHOW_RACKSPACES) // if the Row is in Rackspace mode, process it as a Rackspace select
-                {
-                    songnumber = button - Surface.Row[x].FirstID; // the column number of the button
-                    if (songnumber < Surface.ShowRackCount)
-                    {
-                        if ((songnumber + Surface.FirstShownRack) < getRackspaceCount())
-                        {
-                            Surface.reportWidgetChanges = false;
-                            switchToRackspaceName(getRackspaceName(songnumber + Surface.FirstShownRack));
-                            Surface.reportWidgetChanges = Surface.reportWidgetMode;
-                        }
-                    }
-                    else
-                    {
-                        uint8_t songpartnumber = songnumber - Surface.ShowRackCount; // 
-                        if (songpartnumber < getVariationCount(getCurrentRackspaceIndex()))
-                        {
-                            Surface.reportWidgetChanges = false;
-                            switchToVariation(songpartnumber);
-                            Surface.reportWidgetChanges = Surface.reportWidgetMode;
-                        }
-                    }
-                }
-
                 else if (Surface.Row[x].BankValid()) // make sure ActiveBank is a valid bank to avoid exceptions
                 {
                     ToggleButton(Surface.Row[x], button - Surface.Row[x].FirstID);

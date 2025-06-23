@@ -41,7 +41,7 @@ std::string  LibMain::GetPanelXML(int index)
 
 
 // List of menu items
-std::vector<std::string> menuNames = { "MCU Standard Layout", "iCon M+ Layout", "X-Touch Layout", "iCon P1-M Layout", "Re-initialize extention", "lambdaDemo"};
+std::vector<std::string> menuNames = { "Re-initialize extention", "lambdaDemo"};
 
 
 int LibMain::GetMenuCount()
@@ -68,31 +68,31 @@ void LibMain::InvokeMenu(int index)
     {
         switch (index)
         {
-        case 0:
-            if (widgetExists(LAYOUT_WIDGETNAME)) { setWidgetValue(LAYOUT_WIDGETNAME, 1.0); }  // Layout # is stored in a widget as 1/x because value is constrained to 0-1.  ie, 0.25 = layout 4
-            else SetSurfaceLayout(0);
-            break;
-        case 1:
-            if (widgetExists(LAYOUT_WIDGETNAME)) { setWidgetValue(LAYOUT_WIDGETNAME, 0.5); }
-            else SetSurfaceLayout(1);
-            break;
-        case 2:
-            if (widgetExists(LAYOUT_WIDGETNAME)) { setWidgetValue(LAYOUT_WIDGETNAME, 0.33333); }
-            else SetSurfaceLayout(2);
-            break;
-        case 3:
-            if (widgetExists(LAYOUT_WIDGETNAME)) { setWidgetValue(LAYOUT_WIDGETNAME, 0.25); }
-            else SetSurfaceLayout(3);
-            break;
+        //case 0:
+        //    if (widgetExists(LAYOUT_WIDGETNAME)) { setWidgetValue(LAYOUT_WIDGETNAME, 1.0); }  // Layout # is stored in a widget as 1/x because value is constrained to 0-1.  ie, 0.25 = layout 4
+        //    else SetSurfaceLayout(0);
+        //    break;
+        //case 1:
+        //    if (widgetExists(LAYOUT_WIDGETNAME)) { setWidgetValue(LAYOUT_WIDGETNAME, 0.5); }
+        //    else SetSurfaceLayout(1);
+        //    break;
+        //case 2:
+        //    if (widgetExists(LAYOUT_WIDGETNAME)) { setWidgetValue(LAYOUT_WIDGETNAME, 0.33333); }
+        //    else SetSurfaceLayout(2);
+        //    break;
+        //case 3:
+        //    if (widgetExists(LAYOUT_WIDGETNAME)) { setWidgetValue(LAYOUT_WIDGETNAME, 0.25); }
+        //    else SetSurfaceLayout(3);
+        //    break;
 
-        case 4:
+        case 0:
             // OnStatusChanged(GPStatus_GigFinishedLoading);
             // setWidgetBounds("BoundsWidget", 10, 10, 100, 100);
             InitializeSoftbuttons();
             SendSoftbuttons(1, 80);
             SendSoftbuttonCodes(1, 80);
             break;
-        case 5:
+        case 1:
             scriptLog("calling LambdaDemo", 0);
             lambdaDemo("testmessage");
             scriptLog("Returned after LambdaDemo", 0);
@@ -129,7 +129,7 @@ void LibMain::sendMidiMessage(const uint8_t* MidiMessage, int length) {
 
 void LibMain::sendPort4Message(std::string MidiMessage) {
     // sendMidiMessageToMidiOutDevice(P1Port4Out, MidiMessage);
-    sendMidiMessageToMidiOutDevice(Surface.PortFour, MidiMessage);
+    sendMidiMessageToMidiOutDevice(Surface.PortFourOut, MidiMessage);
 }
 
 
@@ -137,6 +137,9 @@ void LibMain::sendPort4Message(std::string MidiMessage) {
 void LibMain::SetSurfaceLayout(uint8_t config) {
     const uint8_t std_commandarray[] = DEFAULT_COMMAND_BUTTONS;
     const uint8_t config_array[4][sizeof(std_commandarray)] = { DEFAULT_COMMAND_BUTTONS, ICON_MPLUS_COMMAND_BUTTONS, XTOUCH_COMMAND_BUTTONS, ICON_P1M_COMMAND_BUTTONS };
+
+    // for now we're always setting to default P1-M layout now. |< >| cycle knob banks, << >> for fader banks, <<8 8>> for softbuttons
+    config = 3;
 
     if (config >= 0 && config <= 3)
     {
@@ -146,7 +149,7 @@ void LibMain::SetSurfaceLayout(uint8_t config) {
             Surface.CommandButtons[x] = config_array[config][x];
         }
         Surface.ButtonLayout = config;
-        DisplayModeButtons();
+        // DisplayModeButtons();
     }
 }
 

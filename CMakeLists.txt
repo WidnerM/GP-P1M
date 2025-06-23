@@ -1,3 +1,4 @@
+# some required definitions to compile properly
 cmake_minimum_required(VERSION 3.21)
 set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "Minimum OS X deployment version")
 
@@ -7,18 +8,10 @@ set(PROJECT_NAME "GP-P1M") # Change this to your liking
 project(${PROJECT_NAME} VERSION 1.0)
 
 
+# in the dependencies directory we bring in the GP SDK and whatever is required of juce
 include("${CMAKE_CURRENT_LIST_DIR}/cmake/dependencies.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/cmake/juce-shared-library.cmake")
 
-# Import the SDK
-# include(FetchContent)
-# FetchContent_Declare(
-#  gp-sdk
-#  GIT_REPOSITORY https://github.com/gigperformer/gp-sdk.git
-#  GIT_TAG 756ecd249f1ff00f3d3a5955769408f74c9fa453 # SDK 60
-# 
-# )
-# FetchContent_MakeAvailable(gp-sdk)
 
 # Define our library including sources, include directories and dependencies
 add_library(${PROJECT_NAME} SHARED)
