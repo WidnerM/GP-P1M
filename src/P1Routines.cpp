@@ -108,7 +108,7 @@ void LibMain::SendSoftbuttons(uint8_t first, uint8_t last)
 }
 
 // places text at center of 8 character field, padding with correct number of spaces
-std::string centerText(std::string text, int maxAmount = 8)
+/* std::string centerText(std::string text, int maxAmount = 8)
 {
     return std::format("{:^8}", trim(text)); // std::regex_replace(text, std::regex("^ +| +$|( ) +"), "$1"));
 }
@@ -142,7 +142,7 @@ P1Softbutton LibMain::formatSoftbuttonText(std::string label)
         Softbutton.Label = centerText(newlabel.substr(0, 8)) + centerText(newlabel.substr(8, 8));
     }
     return Softbutton;
-}
+} */
 
 // InitializeSoftbuttons() initializes the data structure that holds formatted Softbutton data in the Surface class
 void LibMain::InitializeSoftbuttons()
@@ -153,9 +153,7 @@ void LibMain::InitializeSoftbuttons()
     {
         label = "Soft " + std::to_string(x + 1);
 
-        Surface.SoftbuttonArray.set(x,formatSoftbuttonText(label));
-        // Surface.SoftbuttonArray.Buttons[x] = formatSoftbuttonText(label);
-        // refreshTimer.softbuttonarray.set(x, formatSoftbuttonText(label));
+        Surface.SoftbuttonArray.set(x, label);
     }
 }
 

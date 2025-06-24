@@ -1,5 +1,7 @@
 #pragma once
 
+#include <format>
+#include "General_Utils.h"
 #include "MCU_Constructs.h"
 #include "MCU_Buttons.h"
 
@@ -103,14 +105,10 @@ public:
 
 	int resolution = 1000;
 
-	bool IsFader()
-	{
-		return (WidgetID == FADER_TAG);
-	}
-	bool IsKnob()
-	{
-		return (WidgetID == KNOB_TAG);
-	}
+	bool IsFader();
+
+	bool IsKnob();
+
 };
 
 class SurfaceRow
@@ -227,6 +225,11 @@ class P1Softbutton
 public:
 	uint8_t Format = 7;
 	std::string Label = "                ";
+
+	// basic code to format the two-line softbutton display
+	// could improve it by deciding where to line break if > 8 characters
+	bool formatSoftbuttonText(std::string label);
+
 };
 
 class P1SoftButtonEvent
@@ -249,18 +252,12 @@ public:
 	P1Softbutton LastButtons[80];
 	bool Dirty = true;
 
-	bool set(uint8_t position, P1Softbutton button)
-	{
-		if (position < 80) {
-			Buttons[position] = button;
-			Dirty = true;
-			return true;
-		}
-		else return false;
-	}
+	// set an array element text and forat it appropriately
+	bool set(uint8_t position, std::string text);
+	bool set(uint8_t position, P1Softbutton button);
 };
 
-class SurfaceClass
+class SrfcClass
 {
 public:
 	SurfaceRow Row[8];
@@ -328,9 +325,7 @@ public:
 		// P1-M Softbutton array initialization - label can be up to 14 characters (2 lines of 7)
 		for (x = 0; x < 80; x++)
 		{
-			// P1SoftbuttonArray[x].Label = "Soft " + std::to_string(x+1);
 			SoftbuttonArray.Buttons[x].Label = "Soft " + std::to_string(x + 1);
-			// P1SoftbuttonArray[x].Format = 1;
 			SoftbuttonArray.Buttons[x].Format = 1;
 		}
 
@@ -376,4 +371,17 @@ public:
 		return (rownum >= 0 && rownum < std::size(Row));
 	}
 
+};
+
+class SrfcArray
+{
+public:
+	SrfcClass Instance[3];
+
+	void Initialize()
+	{
+		Instance[0].Initialize();
+		Instance[1].Initialize();
+		Instance[2].Initialize();
+	}
 };

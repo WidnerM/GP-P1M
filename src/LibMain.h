@@ -47,8 +47,8 @@ public:
 
     //  Global declarations and initializations
     //  [Global to the LibMain class, that is]
-    static SurfaceClass Surface;
-    static SurfaceClass SurfaceArray[3];
+    static SrfcClass Surface;
+    static SrfcArray Controller;
     RefreshTimer refreshTimer;
 
 
@@ -100,7 +100,7 @@ public:
     void ScheduledSoftsend();
     // void DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint8_t maxlength);
     void DisplayP1MColorbars();
-    P1Softbutton formatSoftbuttonText(std::string label);
+    // P1Softbutton formatSoftbuttonText(std::string label);
 
 
     // from Inputs.cpp

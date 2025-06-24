@@ -6,8 +6,8 @@ std::vector<std::string> panelNames = { "MCU to OSC" };
 std::vector<std::string> relativePanelLocations = { "MCUtoOSC.gppanel" };
 
 // make global variable Surface static so it can be referened in asychronous RefreshTimer calls
-SurfaceClass staticSurface;
-SurfaceClass LibMain::Surface = staticSurface;
+SrfcClass staticSurface;
+SrfcClass LibMain::Surface = staticSurface;
 
 std::string pathToMe; // This needs to be initialized from the initialization secttion of the LibMain class so it can be used in the standalone functions directly below
 

@@ -290,7 +290,8 @@ void LibMain::DisplayFaders(SurfaceRow Row)
         else for (x = 0; x < Row.Columns; x++)
         {
             DisplayWidgetValue(Row, (uint8_t)x, 0);
-            Surface.SoftbuttonArray.set(x, formatSoftbuttonText("-"));
+            //Surface.SoftbuttonArray.set(x, formatSoftbuttonText("-"));
+            Surface.SoftbuttonArray.set(x, "-");
         }
     }
     else
@@ -336,7 +337,8 @@ void LibMain::DisplayFaders(SurfaceRow Row)
                 }
                 else if (Row.Type == SOFTBUTTON_TYPE)
                 {
-                    Surface.SoftbuttonArray.set(x, formatSoftbuttonText(Label));
+                    // Surface.SoftbuttonArray.set(x, formatSoftbuttonText(Label));
+                    Surface.SoftbuttonArray.set(x, Label);
                 }
             }
 

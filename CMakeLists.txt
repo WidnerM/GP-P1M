@@ -23,6 +23,7 @@ target_sources(
                           "${CMAKE_CURRENT_LIST_DIR}/src/Inputs.cpp"
                           "${CMAKE_CURRENT_LIST_DIR}/src/Songlist.cpp"
                           "${CMAKE_CURRENT_LIST_DIR}/src/General_Utils.cpp"
+                          "${CMAKE_CURRENT_LIST_DIR}/src/MCU_Classes.cpp"
                           "${CMAKE_CURRENT_LIST_DIR}/src/DelayCallback.cpp")
 
 target_link_libraries(${PROJECT_NAME} PRIVATE gigperformer::sdk::cpp
