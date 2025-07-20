@@ -13,92 +13,92 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
     std::string labelwidget;
 
     if (value == 127) {  // only process button downs
-        if (button == Surface.CommandButtons[FADERS_BANK_UP])  // next Fader bank
+        if (button == Controller.Instance[1].CommandButtons[FADERS_BANK_UP])  // next Fader bank
         {
-            //if (Surface.TextDisplay == SHOW_KNOBS)
+            //if (Controller.Instance[1].TextDisplay == SHOW_KNOBS)
             //{
-            //    Surface.TextDisplay = SHOW_FADERS;
+            //    Controller.Instance[1].TextDisplay = SHOW_FADERS;
             //    // DisplayModeButtons();
             //}
-            if (Surface.Row[FADER_ROW].IncrementBank())
+            if (Controller.Instance[1].Row[FADER_ROW].IncrementBank())
             {
                 SyncBankIDs(FADER_ROW);
             }
-            // DisplayFaders(Surface.Row[FADER_ROW]);
+            // DisplayFaders(Controller.Instance[1].Row[FADER_ROW]);
         }
-        else if (button == Surface.CommandButtons[FADERS_BANK_DOWN])  // prior Fader bank
+        else if (button == Controller.Instance[1].CommandButtons[FADERS_BANK_DOWN])  // prior Fader bank
         {
-            //if (Surface.TextDisplay == SHOW_KNOBS)
+            //if (Controller.Instance[1].TextDisplay == SHOW_KNOBS)
             //{
-            //    Surface.TextDisplay = SHOW_FADERS;
+            //    Controller.Instance[1].TextDisplay = SHOW_FADERS;
             //    // DisplayModeButtons();
             //}
-            if (Surface.Row[FADER_ROW].DecrementBank())
+            if (Controller.Instance[1].Row[FADER_ROW].DecrementBank())
             {
                 SyncBankIDs(FADER_ROW);
             }
         }
-        else if (button == Surface.CommandButtons[KNOBS_BANK_UP])  // next Knob bank
+        else if (button == Controller.Instance[1].CommandButtons[KNOBS_BANK_UP])  // next Knob bank
         {
-            //if (Surface.TextDisplay == SHOW_FADERS)
+            //if (Controller.Instance[1].TextDisplay == SHOW_FADERS)
             //{
-            //    Surface.TextDisplay = SHOW_KNOBS;
+            //    Controller.Instance[1].TextDisplay = SHOW_KNOBS;
             //    // DisplayModeButtons();
             //}
-            if (Surface.Row[KNOB_ROW].IncrementBank())
+            if (Controller.Instance[1].Row[KNOB_ROW].IncrementBank())
             {
                 SyncBankIDs(KNOB_ROW);
             }
         }
-        else if (button == Surface.CommandButtons[KNOBS_BANK_DOWN])  // prior Knob bank
+        else if (button == Controller.Instance[1].CommandButtons[KNOBS_BANK_DOWN])  // prior Knob bank
         {
-            //if (Surface.TextDisplay == SHOW_FADERS)
+            //if (Controller.Instance[1].TextDisplay == SHOW_FADERS)
             //{
-            //    Surface.TextDisplay = SHOW_KNOBS;
+            //    Controller.Instance[1].TextDisplay = SHOW_KNOBS;
             //    // DisplayModeButtons();
             //}
-            if (Surface.Row[KNOB_ROW].DecrementBank())
+            if (Controller.Instance[1].Row[KNOB_ROW].DecrementBank())
             {
                 SyncBankIDs(KNOB_ROW);
             }
         }
-        else if (button == Surface.CommandButtons[SONGS_BANK_UP])   // next song/rack bank
+        else if (button == Controller.Instance[1].CommandButtons[SONGS_BANK_UP])   // next song/rack bank
         {
-            if (inSetlistMode() == 1) { Surface.FirstShownSong += Surface.ShowSongCount; }
-            else { Surface.FirstShownRack += Surface.ShowRackCount; }
-            if (Surface.RackRow < Surface.ButtonRows) { DisplayRow(Surface.Row[Surface.RackRow], false); }
+            if (inSetlistMode() == 1) { Controller.Instance[1].FirstShownSong += Controller.Instance[1].ShowSongCount; }
+            else { Controller.Instance[1].FirstShownRack += Controller.Instance[1].ShowRackCount; }
+            if (Controller.Instance[1].RackRow < Controller.Instance[1].ButtonRows) { DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], false); }
         }
-        else if (button == Surface.CommandButtons[SONGS_BANK_DOWN])  // prior Song bank
+        else if (button == Controller.Instance[1].CommandButtons[SONGS_BANK_DOWN])  // prior Song bank
         {
-            if (inSetlistMode() == 1) { Surface.FirstShownSong -= Surface.ShowSongCount; }
-            else { Surface.FirstShownRack -= Surface.ShowRackCount; }
-            if (Surface.RackRow < Surface.ButtonRows) { DisplayRow(Surface.Row[Surface.RackRow], false); }
+            if (inSetlistMode() == 1) { Controller.Instance[1].FirstShownSong -= Controller.Instance[1].ShowSongCount; }
+            else { Controller.Instance[1].FirstShownRack -= Controller.Instance[1].ShowRackCount; }
+            if (Controller.Instance[1].RackRow < Controller.Instance[1].ButtonRows) { DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], false); }
         }
-        else if (button == Surface.CommandButtons[SETLIST_TOGGLE])  // Toggle between in and out of Setlist mode
+        else if (button == Controller.Instance[1].CommandButtons[SETLIST_TOGGLE])  // Toggle between in and out of Setlist mode
         {
-            Surface.reportWidgetChanges = false;
+            Controller.Instance[1].reportWidgetChanges = false;
             inSetlistMode() ? switchToPanelView() : switchToSetlistView();
-            Surface.reportWidgetChanges = Surface.reportWidgetMode;
+            Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
         }
-        else if (button == Surface.CommandButtons[FADERS_SELECT]) // show faders
+        else if (button == Controller.Instance[1].CommandButtons[FADERS_SELECT]) // show faders
         {
-            //if (Surface.TextDisplay == SHOW_SONGS) { DisplayText(0, 0, "", 28); }  // clear upper left area if we're coming out of Songs/Racks display
-            //Surface.TextDisplay = SHOW_FADERS;
+            //if (Controller.Instance[1].TextDisplay == SHOW_SONGS) { DisplayText(0, 0, "", 28); }  // clear upper left area if we're coming out of Songs/Racks display
+            //Controller.Instance[1].TextDisplay = SHOW_FADERS;
             //// DisplayModeButtons();
-            DisplayFaders(Surface.Row[FADER_ROW]);
+            DisplayFaders(Controller.Instance[1].Row[FADER_ROW]);
         }
-        else if (button == Surface.CommandButtons[KNOBS_SELECT]) // show knobs
+        else if (button == Controller.Instance[1].CommandButtons[KNOBS_SELECT]) // show knobs
         {
-            //if (Surface.TextDisplay == SHOW_SONGS) { DisplayText(0, 0, "", 28); }  // clear upper left area if we're coming out of Songs/Racks display
-            //Surface.TextDisplay = SHOW_KNOBS;
+            //if (Controller.Instance[1].TextDisplay == SHOW_SONGS) { DisplayText(0, 0, "", 28); }  // clear upper left area if we're coming out of Songs/Racks display
+            //Controller.Instance[1].TextDisplay = SHOW_KNOBS;
             //// DisplayModeButtons();
-            DisplayFaders(Surface.Row[KNOB_ROW]);
+            DisplayFaders(Controller.Instance[1].Row[KNOB_ROW]);
         }
-        else if (button == Surface.CommandButtons[SONGSRACKS_SELECT]) // show songlist
+        else if (button == Controller.Instance[1].CommandButtons[SONGSRACKS_SELECT]) // show songlist
         {
-            // Surface.TextDisplay = SHOW_SONGS;
+            // Controller.Instance[1].TextDisplay = SHOW_SONGS;
             // DisplayModeButtons();
-            if (Surface.RackRow < Surface.ButtonRows) { DisplayRow(Surface.Row[Surface.RackRow], false); }
+            if (Controller.Instance[1].RackRow < Controller.Instance[1].ButtonRows) { DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], false); }
         }
         else if (button == SID_TRANSPORT_PLAY) // 
         {
@@ -110,67 +110,67 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
         }
         else if (button == SID_FADERBANK_FLIP)
         {
-            Surface.ShowRacksSongs = !Surface.ShowRacksSongs;
-            DisplayButton(SID_FADERBANK_FLIP, Surface.ShowRacksSongs ? 127 : 0);
-            DisplayRow(Surface.Row[Surface.RackRow], false);
+            Controller.Instance[1].ShowRacksSongs = !Controller.Instance[1].ShowRacksSongs;
+            DisplayButton(SID_FADERBANK_FLIP, Controller.Instance[1].ShowRacksSongs ? 127 : 0);
+            DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], false);
         }
-        else for (x = 0; x < Surface.ButtonRows ; x++)
+        else for (x = 0; x < Controller.Instance[1].ButtonRows ; x++)
         {
-            if ((button >= Surface.Row[x].FirstID) && (button < Surface.Row[x].FirstID + Surface.Row[x].Columns) )
+            if ((button >= Controller.Instance[1].Row[x].FirstID) && (button < Controller.Instance[1].Row[x].FirstID + Controller.Instance[1].Row[x].Columns) )
             {
-                if (Surface.Row[x].Type == SOFTBUTTON_TYPE && Surface.ShowRacksSongs)
+                if (Controller.Instance[1].Row[x].Type == SOFTBUTTON_TYPE && Controller.Instance[1].ShowRacksSongs)
                 {
-                    if (Surface.Row[x].Showing == SHOW_SONGS) // if the Row is in song select mode, process it as a song select
+                    if (Controller.Instance[1].Row[x].Showing == SHOW_SONGS) // if the Row is in song select mode, process it as a song select
                     {
-                        songnumber = button - Surface.Row[x].FirstID; // the column number of the button
-                        if (songnumber < Surface.ShowSongCount)
+                        songnumber = button - Controller.Instance[1].Row[x].FirstID; // the column number of the button
+                        if (songnumber < Controller.Instance[1].ShowSongCount)
                         {
-                            if ((songnumber + Surface.FirstShownSong) < getSongCount())
+                            if ((songnumber + Controller.Instance[1].FirstShownSong) < getSongCount())
                             {
-                                Surface.reportWidgetChanges = false;
-                                switchToSong(songnumber + Surface.FirstShownSong, 0);
-                                Surface.reportWidgetChanges = Surface.reportWidgetMode;
+                                Controller.Instance[1].reportWidgetChanges = false;
+                                switchToSong(songnumber + Controller.Instance[1].FirstShownSong, 0);
+                                Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
                             }
                         }
                         else
                         {
-                            uint8_t songpartnumber = songnumber - Surface.ShowSongCount; // 
+                            uint8_t songpartnumber = songnumber - Controller.Instance[1].ShowSongCount; // 
                             if (songpartnumber < getSongpartCount(getCurrentSongIndex()))
                             {
-                                Surface.reportWidgetChanges = false;
+                                Controller.Instance[1].reportWidgetChanges = false;
                                 switchToSongPart(songpartnumber);
-                                Surface.reportWidgetChanges = Surface.reportWidgetMode;
+                                Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
                             }
                         }
                     }
-                    else if (Surface.Row[x].Showing == SHOW_RACKSPACES) // if the Row is in Rackspace mode, process it as a Rackspace select
+                    else if (Controller.Instance[1].Row[x].Showing == SHOW_RACKSPACES) // if the Row is in Rackspace mode, process it as a Rackspace select
                     {
-                        songnumber = button - Surface.Row[x].FirstID; // the column number of the button
-                        if (songnumber < Surface.ShowRackCount)
+                        songnumber = button - Controller.Instance[1].Row[x].FirstID; // the column number of the button
+                        if (songnumber < Controller.Instance[1].ShowRackCount)
                         {
-                            if ((songnumber + Surface.FirstShownRack) < getRackspaceCount())
+                            if ((songnumber + Controller.Instance[1].FirstShownRack) < getRackspaceCount())
                             {
-                                Surface.reportWidgetChanges = false;
-                                switchToRackspaceName(getRackspaceName(songnumber + Surface.FirstShownRack));
-                                Surface.reportWidgetChanges = Surface.reportWidgetMode;
+                                Controller.Instance[1].reportWidgetChanges = false;
+                                switchToRackspaceName(getRackspaceName(songnumber + Controller.Instance[1].FirstShownRack));
+                                Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
                             }
                         }
                         else
                         {
-                            uint8_t songpartnumber = songnumber - Surface.ShowRackCount; // 
+                            uint8_t songpartnumber = songnumber - Controller.Instance[1].ShowRackCount; // 
                             if (songpartnumber < getVariationCount(getCurrentRackspaceIndex()))
                             {
-                                Surface.reportWidgetChanges = false;
+                                Controller.Instance[1].reportWidgetChanges = false;
                                 switchToVariation(songpartnumber);
-                                Surface.reportWidgetChanges = Surface.reportWidgetMode;
+                                Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
                             }
                         }
                     }
                 }
-                else if (Surface.Row[x].BankValid()) // make sure ActiveBank is a valid bank to avoid exceptions
+                else if (Controller.Instance[1].Row[x].BankValid()) // make sure ActiveBank is a valid bank to avoid exceptions
                 {
-                    ToggleButton(Surface.Row[x], button - Surface.Row[x].FirstID);
-                    // ShowButton(Surface.Row[x], button - Surface.Row[x].FirstID);
+                    ToggleButton(Controller.Instance[1].Row[x], button - Controller.Instance[1].Row[x].FirstID);
+                    // ShowButton(Controller.Instance[1].Row[x], button - Controller.Instance[1].Row[x].FirstID);
                 }
             }
         }
@@ -194,14 +194,14 @@ void LibMain::ProcessKnob(uint8_t column, uint8_t value)  // processes a midi me
     int resolution = 200;
     double newValue = 0;
 
-    if (Surface.Row[KNOB_ROW].BankValid()) {
+    if (Controller.Instance[1].Row[KNOB_ROW].BankValid()) {
 
-        widgetname = KNOB_PREFIX + (std::string)"_" + Surface.Row[KNOB_ROW].BankIDs[Surface.Row[KNOB_ROW].ActiveBank] + "_" + std::to_string(column);
+        widgetname = KNOB_PREFIX + (std::string)"_" + Controller.Instance[1].Row[KNOB_ROW].BankIDs[Controller.Instance[1].Row[KNOB_ROW].ActiveBank] + "_" + std::to_string(column);
         if (widgetExists(widgetname) == true)  // if the widget doesn't exist we ignore the input
         {
             if (column < 8) // if it's < 8 it's a real knob
             {
-                pwidgetname = KNOB_PREFIX + (std::string)"p_" + Surface.Row[KNOB_ROW].BankIDs[Surface.Row[KNOB_ROW].ActiveBank] + "_" + std::to_string(column);
+                pwidgetname = KNOB_PREFIX + (std::string)"p_" + Controller.Instance[1].Row[KNOB_ROW].BankIDs[Controller.Instance[1].Row[KNOB_ROW].ActiveBank] + "_" + std::to_string(column);
                 if (widgetExists(pwidgetname))  // if there's a mc_kp_1_5 type caption, process first field as resolution (integer)
                 {
                     caption = getWidgetCaption(pwidgetname);
@@ -255,9 +255,9 @@ void LibMain::ProcessFader(uint8_t channel, uint8_t data1, uint8_t data2)
     double newValue = 0;
 
     channel = channel & 0x0F;
-//    widgetname = FADER_PREFIX + (std::string) "_" + std::to_string(Surface.ActiveFaderBank) + "_" + std::to_string(channel);
-    if (Surface.Row[FADER_ROW].BankValid()) {
-        widgetname = FADER_PREFIX + (std::string)"_" + Surface.Row[FADER_ROW].BankIDs[Surface.Row[FADER_ROW].ActiveBank] + "_" + std::to_string(channel);
+//    widgetname = FADER_PREFIX + (std::string) "_" + std::to_string(Controller.Instance[1].ActiveFaderBank) + "_" + std::to_string(channel);
+    if (Controller.Instance[1].Row[FADER_ROW].BankValid()) {
+        widgetname = FADER_PREFIX + (std::string)"_" + Controller.Instance[1].Row[FADER_ROW].BankIDs[Controller.Instance[1].Row[FADER_ROW].ActiveBank] + "_" + std::to_string(channel);
 
         // scriptLog(widgetname, 1);
         if (channel < 9) // if it's < 9 it's a real fader

@@ -5,6 +5,12 @@
 #include "MCU_Constructs.h"
 #include "MCU_Buttons.h"
 
+#include <gigperformer/sdk/GigPerformerFunctions.h>
+#include "gigperformer/sdk/GPMidiMessages.h"
+#include "gigperformer/sdk/GPUtils.h"
+#include "gigperformer/sdk/GigPerformerAPI.h"
+#include "gigperformer/sdk/types.h"
+
 // Define identifiers GP user must use to name their widgets
 #define THIS_PREFIX "mc"
 #define RECORD_PREFIX "mc_rec"
@@ -155,7 +161,7 @@ public:
 		if (!found) {
 			BankIDs.insert(BankIDs.begin() + index, bank);
 		}
-		return (! found);
+		return (!found);
 	}
 
 	int NextBank()
@@ -255,6 +261,18 @@ public:
 	// set an array element text and forat it appropriately
 	bool set(uint8_t position, std::string text);
 	bool set(uint8_t position, P1Softbutton button);
+
+	void Initialize()
+	{
+		std::string label;
+
+		for (int x = 0; x < 80; x++)
+		{
+			label = "Soft " + std::to_string(x + 1);
+
+			set(x, label);
+		}
+	}
 };
 
 class SrfcClass
@@ -272,7 +290,9 @@ public:
 	std::string PortFourOut = "";
 	std::string PortFourIn = "";
 
-	
+	std::string ColorbarPrefix = P1M_COLORBAR_PREFIX; // the sysex prefix for the colorbar
+
+
 	int P1MColorbars[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 	// uint8_t TextDisplay = SHOW_FADERS; // eliminated this for P1-M
@@ -303,7 +323,7 @@ public:
 		uint8_t midi_commands[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0xB0, 0xE0, 0xB0 };
 		int row_columns[] = { 8, 8, 8, 8, 16, 8, 9, 8 };
 
-		uint8_t first_midi[] = { SID_RECORD_ARM_BASE, SID_SOLO_BASE, SID_MUTE_BASE, SID_SELECT_BASE, SID_FUNCTION_BASE, SID_VPOD_PUSH_BASE, FADER_0, KNOB_0};
+		uint8_t first_midi[] = { SID_RECORD_ARM_BASE, SID_SOLO_BASE, SID_MUTE_BASE, SID_SELECT_BASE, SID_FUNCTION_BASE, SID_VPOD_PUSH_BASE, FADER_0, KNOB_0 };
 
 		// basic Surface structure initializations
 		for (x = 0; x < std::size(Row); x++)
@@ -371,6 +391,133 @@ public:
 		return (rownum >= 0 && rownum < std::size(Row));
 	}
 
+	// P1M color bars - we have to send them all at once in one sysex
+	gigperformer::sdk::GPMidiMessage DisplayP1MColorbars()
+	{
+		std::string midimessage = gigperformer::sdk::GPUtils::hex2binaryString(ColorbarPrefix);
+
+		for (uint8_t loop = 0; loop < 8; loop++)
+		{
+			midimessage.push_back(P1MColorbars[loop] >> 17 & 0x7f);
+			midimessage.push_back(P1MColorbars[loop] >> 9 & 0x7f);
+			midimessage.push_back(P1MColorbars[loop] >> 1 & 0x7f);
+		}
+		
+		return gigperformer::sdk::GPMidiMessage::makeSysexMessage(midimessage + 
+			gigperformer::sdk::GPUtils::hex2binaryString("f7"));
+	}
+
+	void setFirstShownRack(int current, int rackcount, bool forcetocurrent = false)
+	{
+		// Get Controller.Instance[1].FirstShownRack set correctly for what we're going to show at leftmost position
+		if (forcetocurrent == true)
+		{
+			FirstShownRack = current - (current % ShowRackCount);
+		}
+		else
+		{
+			if (FirstShownRack >= rackcount)
+			{
+				FirstShownRack = 0;  // firstshown is zero based, count can be 0 only if there are no racks
+			}
+			if (FirstShownRack < 0) {
+				FirstShownRack = rackcount - rackcount % ShowRackCount;
+			}
+		}
+	}
+
+	void setFirstShownSong(int current, int rackcount, bool forcetocurrent = false)
+	{
+		// Get FirstShownSong set correctly for what we're going to show at leftmost position
+		if (forcetocurrent == true)
+		{
+			FirstShownSong = current - (current % ShowSongCount);
+		}
+		else
+		{
+			if (FirstShownSong >= rackcount)
+			{
+				FirstShownSong = 0;  // firstshown is zero based, count can be 0 only if there are no racks
+			}
+			if (FirstShownSong < 0) {
+				FirstShownSong = rackcount - rackcount % ShowSongCount;
+			}
+		}
+	}
+
+
+	// returns a binary sysex string containing the required softbutton labels (ones that changed since last send)
+	std::string Softsend()
+
+	{
+		std::string pagesysex, sysex="";
+		uint8_t lines, loop, position;
+		bool touched, linetouched;  // to reduce data volume we only send data if the sysex string it belongs to changed
+
+		// if nothing has changed we don't send anything
+		if (SoftbuttonArray.Dirty == true)
+		{
+			SoftbuttonArray.Dirty = false;
+			touched = false;
+			for (lines = 0; lines < (80 / P1M_NAMES_PER_PAGE); lines++)
+			{
+				// hexsysex = P1M_NAME_START;
+				// hexsysex = hexsysex.replace(P1M_NAME_PAGE * 3, 2, std::format("{:02x}", lines + 1)); // which chunk we're on
+				pagesysex = gigperformer::sdk::GPUtils::hex2binaryString(P1M_NAME_START);
+				pagesysex[P1M_NAME_PAGE] = (uint8_t)(lines + 1); // replace page we're on
+				linetouched = false;
+
+				for (loop = 0; loop < P1M_NAMES_PER_PAGE; loop++)
+				{
+					position = loop + lines * P1M_NAMES_PER_PAGE;
+					if (SoftbuttonArray.Buttons[position].Label != SoftbuttonArray.LastButtons[position].Label)
+					{
+						linetouched = true;
+						touched = true;
+						SoftbuttonArray.LastButtons[position].Label = SoftbuttonArray.Buttons[position].Label;
+					}
+					//hexsysex = std::format(" {:02x} ", SoftbuttonArray.Buttons[position].Format);
+					pagesysex.push_back(SoftbuttonArray.Buttons[position].Format);
+					pagesysex += SoftbuttonArray.Buttons[position].Label;
+				}
+				pagesysex.push_back((uint8_t)0xf7);
+
+
+				// only send the sysex for the line if it was touched, or some line was touched and it's the final line
+				if (linetouched || (lines > 6 && touched)) {
+					// scriptLog(hexsysex, 0);
+					// sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(hexsysex));
+					sysex += pagesysex;
+				}
+				// else scriptLog("P1M: line " + std::to_string(lines) + " skipped", 0);
+			}
+			// return gigperformer::sdk::GPMidiMessage::makeSysexMessage(sysex);
+			return sysex;
+		}
+		else return (std::string)""; // gigperformer::sdk::GPMidiMessage(); // return an empty message if nothing has changed
+	}
+
+	//gigperformer::sdk::GPMidiMessage PresetShortname(uint8_t position, std::string shortname)
+	//{
+	//	gigperformer::sdk::GPMidiMessage midimessage;
+
+	//	std::string cleantext = cleanSysex(shortname) + (std::string)"                                                "; // make sure it cover the full length
+
+	//	midimessage = gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(SysexPrefix)
+	//		+ cleantext.substr(0, ShortNameLen) + gigperformer::sdk::GPUtils::hex2binaryString("00f7")); // append the csum placeholder + sysex end marker f7
+
+	//	// set opcodes
+	//	midimessage.setValue((uint8_t)2, (uint8_t)2);
+	//	midimessage.setValue((uint8_t)2, (uint8_t)position);
+	//	midimessage.setValue((uint8_t)2, (uint8_t)0);
+	//	midimessage.setValue((uint8_t)2, (uint8_t)0);
+
+	//	// calculate and place checksum
+	//	midimessage.setValue(midimessage.length() - 2,
+	//		(uint8_t)calculateChecksum(midimessage.length(), midimessage.asBytes()));
+	//	return midimessage;
+
+	//}
 };
 
 class SrfcArray
@@ -385,3 +532,4 @@ public:
 		Instance[2].Initialize();
 	}
 };
+

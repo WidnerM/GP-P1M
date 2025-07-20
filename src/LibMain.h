@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
+#include <queue>
 #include <math.h>
 #include <regex>
 #include "MCU_Classes.h"
@@ -47,10 +48,11 @@ public:
 
     //  Global declarations and initializations
     //  [Global to the LibMain class, that is]
-    static SrfcClass Surface;
+    // static SrfcClass Surface;
     static SrfcArray Controller;
     RefreshTimer refreshTimer;
 
+    std::queue<std::string> SysexQueue; // because the P1-M gets overloaded easily on port 4
 
     void lambdaDemo(std::string message);
 
@@ -64,11 +66,13 @@ public:
     void sendMidiMessage(std::string MidiMessage);
     void sendMidiMessage(gigperformer::sdk::GPMidiMessage MidiMessage);
     void sendMidiMessage(const uint8_t* MidiMessage, int length);
+	void sendMidiMessage(uint8_t daw, std::string MidiMessage);
+    void sendMidiMessage(uint8_t daw, gigperformer::sdk::GPMidiMessage MidiMessage);
+    void sendMidiMessage(uint8_t daw, const uint8_t* MidiMessage, int length);
 //    void sendHexMidiMessage(std::string MidiMessage);
 
     void SetSurfaceLayout(uint8_t config);
     void sendPort4Message(std::string MidiMessage);
-    std::string SendSoftbuttonCodes(uint8_t first, uint8_t last);
 
 
     // from Display.cpp - functions for displaying things on the control surface (fader positions, LCD, button lights, etc.)
@@ -84,7 +88,7 @@ public:
     void SyncBankIDs(uint8_t syncrow);
 
     void DisplayWidgetValue(SurfaceRow Row, uint8_t column, double Value);
-    void DisplayTopLeft(uint8_t column, const std::string caption);
+    // void DisplayTopLeft(uint8_t column, const std::string caption);
     void DisplayControlLabel(uint8_t column, const std::string caption);
     uint8_t KnobDotValue(uint8_t column);
     uint8_t KnobRingValue(uint8_t column);
@@ -95,11 +99,15 @@ public:
     
 
     // from P1Routines.cpp
-    void InitializeSoftbuttons();
-    void SendSoftbuttons(uint8_t first, uint8_t last);
     void ScheduledSoftsend();
+    std::string SendSoftbuttonCodes(uint8_t first, uint8_t last);
+	bool QueueMidi(std::string sysex); // Queues a sysex message to be sent later, to avoid overloading the P1-M port 4
+	bool SendQueuedMidi(); // pops one message and sends it to the P1-M port 4
+
+    // void InitializeSoftbuttons();
+    // void SendSoftbuttons(uint8_t first, uint8_t last);
     // void DisplayP1MText(uint8_t column, uint8_t row, std::string text, uint8_t maxlength);
-    void DisplayP1MColorbars();
+    // void DisplayP1MColorbars();
     // P1Softbutton formatSoftbuttonText(std::string label);
 
 
@@ -125,7 +133,7 @@ public:
     void DisplayVariations(SurfaceRow Row, int current);
     void DisplayRow(SurfaceRow Row, bool forcetocurrent);
     void DisplayRow(SurfaceRow Row);
-    void DisplayFaders(SurfaceRow Row);  // Shows the active knob bank (as stored in Surface.ActiveKnobBank)
+    void DisplayFaders(SurfaceRow Row);  // Shows the active knob bank (as stored in Controller.Instance[1].ActiveKnobBank)
     void DisplayButtonRow(SurfaceRow Row, uint8_t firstbutton, uint8_t number);
     void DisplaySoftbuttons(SurfaceRow Row);
 
@@ -152,8 +160,8 @@ public:
             if (regex_match(name, std::regex("MIDIIN4.*P1-M.*")))
             {
                 P1Port4In = name;
-                Surface.PortFourIn = name;
-                listenForMidi(Surface.PortFourIn, 1);
+                Controller.Instance[1].PortFourIn = name;
+                listenForMidi(Controller.Instance[1].PortFourIn, 1);
                 scriptLog("P1M:  Using port 4 " + name, 0);
             }
         }
@@ -168,7 +176,8 @@ public:
                     validOutPorts.push_back(name);
                     if (regex_match(name, std::regex(P1M_REGEX)))
                     {
-                        Surface.P1MType = true;
+                        Controller.Instance[1].P1MType = true;
+						Controller.Instance[1].OutPort = name;
                     }
                     scriptLog("P1M:  Using midi out " + name, 0);
                 }
@@ -176,7 +185,7 @@ public:
             if (regex_match(name, std::regex("MIDIOUT4.*P1-M.*")))
             {
                 P1Port4Out = name;
-                Surface.PortFourOut = name;
+                Controller.Instance[1].PortFourOut = name;
                 scriptLog("P1M:  Using port 4 " + name, 0);
             }
         }
@@ -223,7 +232,7 @@ public:
             OnRackspaceActivated();  // will move faders, light buttons, set display.
             OnModeChanged(inSetlistMode());  // will set indicators and buttons for whether we're in setlist or rackspace mode
 
-            // LightButtonsForRow(Surface.Row[0], 0, 8);
+            // LightButtonsForRow(Controller.Instance[1].Row[0], 0, 8);
             // DisplayModeButtons();
         }
     }
@@ -238,11 +247,11 @@ public:
         InitializeMCU();  // clear buttons, display, and VCUs
 
         // Clear all the OSC displays so we don't have stray junk left behind or on next Gig load
-        for (row = 0; row < std::size(Surface.Row); row++)
+        for (row = 0; row < std::size(Controller.Instance[1].Row); row++)
         {
-            for (column = 0; column < Surface.Row[row].Columns; column++)
+            for (column = 0; column < Controller.Instance[1].Row[row].Columns; column++)
             {
-                widgetname = Surface.Row[row].WidgetPrefix + "_active_" + std::to_string(column);
+                widgetname = Controller.Instance[1].Row[row].WidgetPrefix + "_active_" + std::to_string(column);
                 if (widgetExists(widgetname))
                 {
                     setWidgetCaption(widgetname, "");
@@ -293,16 +302,16 @@ public:
             column = std::stoi("0" + control_number);
             if (std::to_string(column) != control_number) { column = 255; } // flag it as 255 if it's an invalid id
 
-            for (row = 0; row < std::size(Surface.Row); row++)  // cycle through each Row of control
+            for (row = 0; row < std::size(Controller.Instance[1].Row); row++)  // cycle through each Row of control
             {
-                if (control_type == Surface.Row[row].WidgetID && Surface.Row[row].Showing == SHOW_ASSIGNED && column <= Surface.Row[row].Columns && Surface.Row[row].BankValid())
+                if (control_type == Controller.Instance[1].Row[row].WidgetID && Controller.Instance[1].Row[row].Showing == SHOW_ASSIGNED && column <= Controller.Instance[1].Row[row].Columns && Controller.Instance[1].Row[row].BankValid())
                 {
                     //scriptLog("MC: Callback for " + widgetName, 1);
-                    if (control_bank.compare(Surface.Row[row].BankIDs[Surface.Row[row].ActiveBank]) == 0)  // if it's the active bank we update the OSC label
+                    if (control_bank.compare(Controller.Instance[1].Row[row].BankIDs[Controller.Instance[1].Row[row].ActiveBank]) == 0)  // if it's the active bank we update the OSC label
                     {
 
                         Value = getWidgetValue(widgetName);
-                        setWidgetCaption(Surface.Row[row].WidgetPrefix + "_active_" + control_number, newCaption);
+                        setWidgetCaption(Controller.Instance[1].Row[row].WidgetPrefix + "_active_" + control_number, newCaption);
                         // Gig Performer doesn't send OSC updates for just the caption.  Need to move the value to make it send an OSC update.
                         Value > 0.9 ? setWidgetValue(widgetName, Value - 0.05) : setWidgetValue(widgetName, Value + 0.05);
                         setWidgetValue(widgetName, Value);
@@ -312,37 +321,38 @@ public:
         }
         else if (widgetName == SHOWRACKS_WIDGETNAME)
         {
-            Surface.ShowRackCount = std::min(std::stoi("0" + getWidgetCaption(widgetName)), 16);
-            Surface.ShowVariationCount = 16 - Surface.ShowRackCount;
+            Controller.Instance[1].ShowRackCount = std::min(std::stoi("0" + getWidgetCaption(widgetName)), 16);
+            Controller.Instance[1].ShowVariationCount = 16 - Controller.Instance[1].ShowRackCount;
         }
         else if (widgetName == SHOWSONGS_WIDGETNAME)
         {
-            Surface.ShowSongCount = std::min(std::stoi("0" + getWidgetCaption(widgetName)), 16);
-            Surface.ShowSongpartCount = 16 - Surface.ShowSongCount;
+            Controller.Instance[1].ShowSongCount = std::min(std::stoi("0" + getWidgetCaption(widgetName)), 16);
+            Controller.Instance[1].ShowSongpartCount = 16 - Controller.Instance[1].ShowSongCount;
         }
 
     }
 
     void OnTempoChanged(double newValue) override
     {
-        if (Surface.reportWidgetChanges == true )  // show changes on upper left display if not showing racks/songs
+        if (Controller.Instance[1].reportWidgetChanges == true )  // show changes on upper left display if not showing racks/songs
         {
-            DisplayTopLeft(0, "BPM: " + std::to_string(newValue));
+            // DisplayTopLeft(0, "BPM: " + std::to_string(newValue));
+            // maybe display on the LED time code display
         }
     }
 
     void OnWidgetValueChanged(const std::string & widgetName, double newValue) override
     {
         // scriptLog("MC: Widget changed: " + widgetName, 1);
-        if (Surface.IgnoreWidget != "") {
+        if (Controller.Instance[1].IgnoreWidget != "") {
             scriptLog("MC: Ignoring widget: " + widgetName, 0);
-            Surface.IgnoreWidget = "";
+            Controller.Instance[1].IgnoreWidget = "";
         }
         else
         {
             if (widgetName == LAYOUT_WIDGETNAME) {  // if it's a widget that changes the control layout
                 uint8_t column = (uint8_t) round(1 / std::max(newValue, 1.0 / 127)) - 1;
-                if (column != Surface.ButtonLayout)
+                if (column != Controller.Instance[1].ButtonLayout)
                 {
                     SetSurfaceLayout(column);
                 }
@@ -357,15 +367,15 @@ public:
 
                 if (widget.IsSurfaceItemWidget)
                 {
-                    if (widget.BankID == Surface.Row[widget.RowNumber].ActiveBankID() && 
-                        (Surface.Row[widget.RowNumber].Type != SOFTBUTTON_TYPE || !Surface.ShowRacksSongs) )
+                    if (widget.BankID == Controller.Instance[1].Row[widget.RowNumber].ActiveBankID() && 
+                        (Controller.Instance[1].Row[widget.RowNumber].Type != SOFTBUTTON_TYPE || !Controller.Instance[1].ShowRacksSongs) )
                     {
-//                        setWidgetValue(Surface.Row[widget.RowNumber].WidgetPrefix + "_active_" + widget.Column, newValue);
+//                        setWidgetValue(Controller.Instance[1].Row[widget.RowNumber].WidgetPrefix + "_active_" + widget.Column, newValue);
                         setWidgetValue( widget.SurfacePrefix + "_" + widget.WidgetID + "_active_" + std::to_string(widget.Column), newValue);
-                        DisplayWidgetValue(Surface.Row[widget.RowNumber], widget.Column, newValue);
+                        DisplayWidgetValue(Controller.Instance[1].Row[widget.RowNumber], widget.Column, newValue);
                         if (widget.WidgetID == FADER_TAG) { DisplayText(widget.Column, 2, widget.TextValue, 7); }
                         if (widget.WidgetID == KNOB_TAG) { DisplayText(widget.Column, 1, widget.TextValue, 7); }
-                        //if (Surface.reportWidgetChanges == true && Surface.TextDisplay != SHOW_SONGS && !Surface.P1MType)  // show changes on upper left display if not showing racks/songs
+                        //if (Controller.Instance[1].reportWidgetChanges == true && Controller.Instance[1].TextDisplay != SHOW_SONGS && !Controller.Instance[1].P1MType)  // show changes on upper left display if not showing racks/songs
                         //{
                         //    DisplayTopLeft(widget.Column, widget.Caption + " : " + widget.TextValue);
                         //}
@@ -385,11 +395,12 @@ public:
     // process data coming from the MCU (or a virtual MCU)
     bool OnMidiIn(const std::string & deviceName, const uint8_t* data, int length) override
     {
+        const uint8_t ACK[] = { 0x9a, 0x26, 0x01 }; // note on ch 10 38 vel 1
         char str[1024];
         char extra[5];
         int x;
 
-        if (deviceName == Surface.PortFourIn)
+        if (deviceName == Controller.Instance[1].PortFourIn)
         {
             sprintf(str, "Port4 In: ");
             for (x = 0; x < length; x++)
@@ -398,6 +409,10 @@ public:
                 strcat(str, extra);
             }
             scriptLog(str, 0);
+            //if (memcmp(data, ACK, sizeof(data)) == 0)
+            //{ 
+            //    SendQueuedMidi(); // if we get the ACK from the P1-M it's ok to send the next block
+            //}
         }
         else
         {
@@ -437,16 +452,16 @@ public:
         // scriptLog("MC: Song changed to number " + std::to_string(newIndex), 1);
         // scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
         
-        for (row = 0; row < Surface.ButtonRows; row++)
+        for (row = 0; row < Controller.Instance[1].ButtonRows; row++)
         {
-            if ((Surface.Row[row].Showing == SHOW_SONGS) && (getCurrentSongIndex() >= 0))
+            if ((Controller.Instance[1].Row[row].Showing == SHOW_SONGS) && (getCurrentSongIndex() >= 0))
             {
-                DisplaySongs(Surface.Row[row], true);
+                DisplaySongs(Controller.Instance[1].Row[row], true);
             }
-            if ((Surface.Row[row].Showing == SHOW_SONGPARTS) && (getCurrentSongIndex() >= 0))
-            {
-                DisplaySongParts(Surface.Row[row], getCurrentSongpartIndex());
-            }
+            //if ((Controller.Instance[1].Row[row].Showing == SHOW_SONGPARTS) && (getCurrentSongIndex() >= 0))
+            //{
+            //    DisplaySongParts(Controller.Instance[1].Row[row], getCurrentSongpartIndex());
+            //}
         }
     } 
 
@@ -458,14 +473,14 @@ public:
         // scriptLog("MC: Song part changed to number " + std::to_string(newIndex), 1);
         // scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
 
-        /* for (row = 0; row < Surface.ButtonRows; row++)
+        /* for (row = 0; row < Controller.Instance[1].ButtonRows; row++)
         {
-            if ((Surface.Row[row].Showing == SHOW_SONGPARTS) && (getCurrentSongIndex() >= 0))
+            if ((Controller.Instance[1].Row[row].Showing == SHOW_SONGPARTS) && (getCurrentSongIndex() >= 0))
             {
-                DisplaySongParts(Surface.Row[row], newIndex);
+                DisplaySongParts(Controller.Instance[1].Row[row], newIndex);
             }
         } */
-        DisplayRow(Surface.Row[Surface.RackRow]);
+        DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow]);
     }
 
     // Called when entering song mode
@@ -478,20 +493,20 @@ public:
 
         // DisplayTopLeft(0, "");
         
-        if (Surface.RackRow < Surface.ButtonRows)
+        if (Controller.Instance[1].RackRow < Controller.Instance[1].ButtonRows)
         {
-            Surface.Row[Surface.RackRow].Showing = (mode == 1) ? SHOW_SONGS : SHOW_RACKSPACES;
-            DisplayRow(Surface.Row[Surface.RackRow], true);
+            Controller.Instance[1].Row[Controller.Instance[1].RackRow].Showing = (mode == 1) ? SHOW_SONGS : SHOW_RACKSPACES;
+            DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], true);
         }
 
-        //if (Surface.VarRow < Surface.ButtonRows)
+        //if (Controller.Instance[1].VarRow < Controller.Instance[1].ButtonRows)
         //{
-        //    Surface.Row[Surface.VarRow].Showing = (mode == 1) ? SHOW_SONGPARTS : SHOW_VARIATIONS;
-        //    DisplayRow(Surface.Row[Surface.VarRow], true);
+        //    Controller.Instance[1].Row[Controller.Instance[1].VarRow].Showing = (mode == 1) ? SHOW_SONGPARTS : SHOW_VARIATIONS;
+        //    DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].VarRow], true);
         //}
 
         // Light or turn off the SID_MIXER button to indicate if we're in Setlist mode (mode==1) or rackspace mode
-        sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Surface.CommandButtons[SETLIST_TOGGLE], (mode == 1) ? BUTTON_LIT : BUTTON_OFF, 0));
+        sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Controller.Instance[1].CommandButtons[SETLIST_TOGGLE], (mode == 1) ? BUTTON_LIT : BUTTON_OFF, 0));
     }
 
     // examine a vector of widgets and structure the Surface structure to reflect widgets in the rackspace or global rackspace
@@ -511,14 +526,14 @@ public:
             // SHOWRACKS_WIDGETNAME caption sets how many Rackspaces to show on softbuttons (rest will show variations)
             if (widgetname == SHOWRACKS_WIDGETNAME)
             {
-                Surface.ShowRackCount = std::min(std::stoi("0" + getWidgetCaption(widgetname)),16);
-                Surface.ShowVariationCount = 16 - Surface.ShowRackCount;
+                Controller.Instance[1].ShowRackCount = std::min(std::stoi("0" + getWidgetCaption(widgetname)),16);
+                Controller.Instance[1].ShowVariationCount = 16 - Controller.Instance[1].ShowRackCount;
             }
             // SHOWSONGS_WIDGETNAME caption sets how many Songs to show on softbuttons (rest will show Songparts)
             else if (widgetname == SHOWSONGS_WIDGETNAME)
             {
-                Surface.ShowSongCount = std::min(std::stoi("0" + getWidgetCaption(widgetname)), 16);
-                Surface.ShowSongpartCount = 16 - Surface.ShowSongCount;
+                Controller.Instance[1].ShowSongCount = std::min(std::stoi("0" + getWidgetCaption(widgetname)), 16);
+                Controller.Instance[1].ShowSongpartCount = 16 - Controller.Instance[1].ShowSongCount;
             }
             else if (widgetname == LAYOUT_WIDGETNAME)
             { 
@@ -540,11 +555,11 @@ public:
                 column = name_segments[3];
 
                 // loop this three times for prefic mc1 mc2 mc3 (or just mc in place of mc1)
-                // and instead of Surface.addSurfaceBank use SurfaceArray[x].addSurfaceBank
+                // and instead of Controller.Instance[1].addSurfaceBank use SurfaceArray[x].addSurfaceBank
                 // if it's a widget we're interested in, add a bank for it if it doesn't already exist, and listen for it
                 if (prefix == THIS_PREFIX && bank != "active" )  // we don't listen for "active" widgets, which are generally just for linking to an OSC display
                 {
-                    if (Surface.addSurfaceBank(type, bank) == true) {  /* scriptLog("bS added bank for " + widgetname, 1); */ }
+                    if (Controller.Instance[1].addSurfaceBank(type, bank) == true) {  /* scriptLog("bS added bank for " + widgetname, 1); */ }
                     if (column != "b") { listenForWidget(widgetname, true); }
                 }
             }
@@ -558,27 +573,27 @@ public:
         std::string widgetname;
         int index;
 
-        Surface.Row[row].ActiveBank = -1;
+        Controller.Instance[1].Row[row].ActiveBank = -1;
 
-        if (Surface.Row[row].BankIDs.empty())
+        if (Controller.Instance[1].Row[row].BankIDs.empty())
         {
-            Surface.Row[row].ActiveBank = -1;
+            Controller.Instance[1].Row[row].ActiveBank = -1;
         }
         else {
-            for (index = 0; index < Surface.Row[row].BankIDs.size(); ++index)
+            for (index = 0; index < Controller.Instance[1].Row[row].BankIDs.size(); ++index)
             {
-                widgetname = Surface.Row[row].WidgetPrefix + (std::string)"_" + Surface.Row[row].BankIDs[index] + (std::string)"_i";
+                widgetname = Controller.Instance[1].Row[row].WidgetPrefix + (std::string)"_" + Controller.Instance[1].Row[row].BankIDs[index] + (std::string)"_i";
                 // scriptLog("sAFB sees " + widgetname + (std::string)" as " + std::to_string(getWidgetValue(widgetname)), 1);
                 if (widgetExists(widgetname))
                 {
-                    if ((getWidgetValue(widgetname) > 0.99) && (Surface.Row[row].ActiveBank == -1)) {
-                        Surface.Row[row].ActiveBank = index;
-                        // scriptLog("setActiveBank set active to " + std::to_string(index) + " " + Surface.Row[row].BankIDs[index], 1);
+                    if ((getWidgetValue(widgetname) > 0.99) && (Controller.Instance[1].Row[row].ActiveBank == -1)) {
+                        Controller.Instance[1].Row[row].ActiveBank = index;
+                        // scriptLog("setActiveBank set active to " + std::to_string(index) + " " + Controller.Instance[1].Row[row].BankIDs[index], 1);
                     }
-                    else if (index != Surface.Row[row].ActiveBank) { setWidgetValue(widgetname, 0.3); }
+                    else if (index != Controller.Instance[1].Row[row].ActiveBank) { setWidgetValue(widgetname, 0.3); }
                 }
             }
-            if (Surface.Row[row].ActiveBank == -1) { Surface.Row[row].ActiveBank = 0; } // if there are no bank indicator widgets, set ActiveBank to first bank
+            if (Controller.Instance[1].Row[row].ActiveBank == -1) { Controller.Instance[1].Row[row].ActiveBank = 0; } // if there are no bank indicator widgets, set ActiveBank to first bank
         }
     }
 
@@ -590,54 +605,48 @@ public:
         std::vector<std::string> widgetlist, globalwidgetlist;
 
         // scriptLog("MC: Rackspace Changed to " + getRackspaceName(getCurrentRackspaceIndex()),1);
-        //Surface.reportWidgetChanges = false;
-        //if (Surface.TextDisplay != SHOW_SONGS) {   
+        //Controller.Instance[1].reportWidgetChanges = false;
+        //if (Controller.Instance[1].TextDisplay != SHOW_SONGS) {   
         //    ClearMCUDisplay();
         //    ClearMCUDisplay(2);
         //}
 
         // Clear the BankIDs and active bank data from the prior rackspace's widget set
-        for (row = 0; row < std::size(Surface.Row); row++)
+        for (row = 0; row < std::size(Controller.Instance[1].Row); row++)
         {
-            Surface.Row[row].ActiveBank = -1;
-            Surface.Row[row].BankIDs.clear();
+            Controller.Instance[1].Row[row].ActiveBank = -1;
+            Controller.Instance[1].Row[row].BankIDs.clear();
         }
 
-        // scriptLog("Getting global widgets", 1);
+        // get local and global widget list, combine them, analyze them to build the surface model they define
         getWidgetList(globalwidgetlist, true);
-        // buildSurfaceModel(widgetlist);
-
-        // scriptLog("Getting local widgets", 1);
         getWidgetList(widgetlist, false);
         widgetlist.insert(widgetlist.end(), globalwidgetlist.begin(), globalwidgetlist.end());
         buildSurfaceModel(widgetlist);
 
         // scriptLog("Done buildSurface", 1);
 
-        // Set up which rows, if any, show racks and variations
-        // SetRowAssignments();  // for P1 series we always show racks/variations or songs/songparts on softbuttons
-
         // Button row initializations
-        for (row = 0; row < Surface.ButtonRows; row++) {
+        for (row = 0; row < Controller.Instance[1].ButtonRows; row++) {
             setActiveBank(row);
-            // scriptLog("Set active bank for row " + std::to_string(row) + " to " + std::to_string(Surface.Row[row].ActiveBank), 1);
-            if (row == Surface.RackRow) // if we're showing Racks/Songs on this row, just do that
+            // scriptLog("Set active bank for row " + std::to_string(row) + " to " + std::to_string(Controller.Instance[1].Row[row].ActiveBank), 1);
+            if (row == Controller.Instance[1].RackRow) // if we're showing Racks/Songs on this row, just do that
             {
-                DisplayRow(Surface.Row[row], true);
+                DisplayRow(Controller.Instance[1].Row[row], true);
             }
             else
             {
-                for (column = 0; column < Surface.Row[row].Columns; column++)
+                for (column = 0; column < Controller.Instance[1].Row[row].Columns; column++)
                 {
                     // if there's no valid bank, or if there is a valid bank but no valid widget for this column, then un-light the button 
-                    if (Surface.Row[row].BankValid())
+                    if (Controller.Instance[1].Row[row].BankValid())
                     {
-                        widgetname = THIS_PREFIX + (std::string)"_" + Surface.Row[row].WidgetID + "_" + Surface.Row[row].BankIDs[Surface.Row[row].ActiveBank] + "_" + std::to_string(column);
-                        if (widgetExists(widgetname) != true && Surface.Row[row].Showing == SHOW_ASSIGNED) { DisplayWidgetValue(Surface.Row[row], column, BUTTON_OFF); }
+                        widgetname = THIS_PREFIX + (std::string)"_" + Controller.Instance[1].Row[row].WidgetID + "_" + Controller.Instance[1].Row[row].BankIDs[Controller.Instance[1].Row[row].ActiveBank] + "_" + std::to_string(column);
+                        if (widgetExists(widgetname) != true && Controller.Instance[1].Row[row].Showing == SHOW_ASSIGNED) { DisplayWidgetValue(Controller.Instance[1].Row[row], column, BUTTON_OFF); }
                     }
-                    else { DisplayWidgetValue(Surface.Row[row], column, BUTTON_OFF); }
+                    else { DisplayWidgetValue(Controller.Instance[1].Row[row], column, BUTTON_OFF); }
                 }
-                DisplayRow(Surface.Row[row], true);
+                DisplayRow(Controller.Instance[1].Row[row], true);
             }
         }
 
@@ -645,19 +654,19 @@ public:
         // scriptLog("Done button rows", 1);
         // we need to decisively set the active bank because it's possible that upon rackspace or variation change more than one, or zero, are set
         setActiveBank(KNOB_ROW);
-        DisplayFaders(Surface.Row[KNOB_ROW]);
-        if (!Surface.Row[KNOB_ROW].BankValid()) { ClearMCUDisplay(); }
+        DisplayFaders(Controller.Instance[1].Row[KNOB_ROW]);
+        if (!Controller.Instance[1].Row[KNOB_ROW].BankValid()) { ClearMCUDisplay(); }
 
         // scriptLog("Done Knob row", 1);
         setActiveBank(FADER_ROW);
-        DisplayFaders(Surface.Row[FADER_ROW]);
-        if (!Surface.Row[FADER_ROW].BankValid()) { ClearMCUDisplay(2); }
+        DisplayFaders(Controller.Instance[1].Row[FADER_ROW]);
+        if (!Controller.Instance[1].Row[FADER_ROW].BankValid()) { ClearMCUDisplay(2); }
 
         // DisplayModeButtons();
         
         // scriptLog("Finishing OnRackspaceChanged.", 1);
 
-        Surface.reportWidgetChanges = Surface.reportWidgetMode;
+        Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
     }
     
 
@@ -667,37 +676,27 @@ public:
         int row;
 
         // scriptLog("MC: Variation Changed to " + std::to_string(newIndex) + getVariationName(getCurrentRackspaceIndex(), getCurrentVariationIndex()), 1);
-        Surface.reportWidgetChanges = false;
-        // if (Surface.TextDisplay != SHOW_SONGS) { DisplayTopLeft(0, ""); } // clears the upper left part of display that shows last widget touched
-
-        //for (row = 0; row < Surface.ButtonRows; row++)
-        //{
-        //    if (Surface.Row[row].Showing == SHOW_VARIATIONS) {
-        //        // DisplayVariations(Surface.Row[row], newIndex);
-        //    }
-        //}
+        Controller.Instance[1].reportWidgetChanges = false;
 
         // we need to decisively set the active bank because it's possible that upon rackspace or variation change more than one, or zero, are set
         setActiveBank(KNOB_ROW);
-        DisplayFaders(Surface.Row[KNOB_ROW]);
+        DisplayFaders(Controller.Instance[1].Row[KNOB_ROW]);
 
         setActiveBank(FADER_ROW);
-        DisplayFaders(Surface.Row[FADER_ROW]);
+        DisplayFaders(Controller.Instance[1].Row[FADER_ROW]);
         // scriptLog("Finishing OnVariationChanged.", 1);
-        Surface.reportWidgetChanges = Surface.reportWidgetMode;
+        Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
 
         // DisplayModeButtons();
 
-        DisplayRow(Surface.Row[Surface.RackRow]);
+        DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow]);
     }
 
     void OnOpen() override
     {
         // ExtensionWindow::initialize();
         juce::MessageManager::getInstance()->callAsync([]() { });  // this starts the juce library
-        // scriptLog("starting timer", 0);
-        // refreshTimer.surfacelink = Surface;
-        refreshTimer.startTimer(100);
+        refreshTimer.startTimer(50);
     }
 
     void Initialization() override

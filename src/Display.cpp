@@ -11,15 +11,18 @@ void LibMain::InitializeMCU()
 {
     int x;
 
-    Surface.Initialize();
+    Controller.Instance[1].SoftbuttonArray.Initialize();
 
-    Surface.FirstShownSong = 0;
+    Controller.Instance[1].Initialize();
+
+    Controller.Instance[1].FirstShownSong = 0;
 
     // clear display
     CleanMCU();
-    if (Surface.P1MType) {
-        InitializeSoftbuttons();
-        SendSoftbuttons(1, 80);
+    if (Controller.Instance[1].P1MType) {
+        // InitializeSoftbuttons();
+		Controller.Instance[1].SoftbuttonArray.Initialize();
+        // SendSoftbuttons(1, 80);
         SendSoftbuttonCodes(1, 80);
     }
 }
@@ -100,7 +103,7 @@ void LibMain::DisplayBankInfo(std::string text)
 {
     std::string hexmessage, subtext, binmessage;
 
-    if (!Surface.P1MType)
+    if (!Controller.Instance[1].P1MType)
     {
         subtext = "                                                                " + cleanSysex(text);
         hexmessage = MCU_TEXT_HDR + (std::string)"1C" + textToHexString(subtext.substr(subtext.length() - 28, subtext.length())) + (std::string)" f7";
@@ -114,9 +117,9 @@ void LibMain::DisplayBankInfo(std::string text)
 uint8_t LibMain::KnobDotValue(uint8_t column)
 {
     uint8_t dotvalue = 0;
-    if (Surface.Row[KNOB_BUTTON_ROW].BankValid())
+    if (Controller.Instance[1].Row[KNOB_BUTTON_ROW].BankValid())
     {
-        std::string widgetname = Surface.Row[KNOB_BUTTON_ROW].WidgetPrefix + "_" + Surface.Row[KNOB_BUTTON_ROW].ActiveBankID() +
+        std::string widgetname = Controller.Instance[1].Row[KNOB_BUTTON_ROW].WidgetPrefix + "_" + Controller.Instance[1].Row[KNOB_BUTTON_ROW].ActiveBankID() +
             "_" + std::to_string(column);
 //        scriptLog("Knob Dot Value: " + widgetname + " " + std::to_string(getWidgetValue(widgetname)), true);
         if (widgetExists(widgetname)) dotvalue = (getWidgetValue(widgetname) > 0 ? 64 : 0);
@@ -129,9 +132,9 @@ uint8_t LibMain::KnobDotValue(uint8_t column)
 uint8_t LibMain::KnobRingValue(uint8_t column)
 {
     uint8_t ringvalue = 0;
-    if (Surface.Row[KNOB_ROW].BankValid())
+    if (Controller.Instance[1].Row[KNOB_ROW].BankValid())
     {
-        std::string widgetname = Surface.Row[KNOB_ROW].WidgetPrefix + "_" + Surface.Row[KNOB_ROW].ActiveBankID() +
+        std::string widgetname = Controller.Instance[1].Row[KNOB_ROW].WidgetPrefix + "_" + Controller.Instance[1].Row[KNOB_ROW].ActiveBankID() +
             "_" + std::to_string(column);
         //        scriptLog("Knob Dot Value: " + widgetname + " " + std::to_string(getWidgetValue(widgetname)), true);
         if (widgetExists(widgetname)) ringvalue = (uint8_t) (getWidgetValue(widgetname) * 10.9999 + 1);
@@ -184,9 +187,9 @@ void LibMain::DisplayButton(uint8_t button, uint8_t value)
 // light buttons to indicate what display mode we're in - showing faders, knobs, or songs/racks on the LCD display
 /* void LibMain::DisplayModeButtons()
 {
-    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Surface.CommandButtons[FADERS_SELECT], (Surface.TextDisplay == SHOW_FADERS) ? BUTTON_LIT : BUTTON_OFF, 0));
-    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Surface.CommandButtons[KNOBS_SELECT], (Surface.TextDisplay == SHOW_KNOBS) ? BUTTON_LIT : BUTTON_OFF, 0));
-    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Surface.CommandButtons[SONGSRACKS_SELECT], (Surface.TextDisplay == SHOW_SONGS) ? BUTTON_LIT : BUTTON_OFF, 0));
+    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Controller.Instance[1].CommandButtons[FADERS_SELECT], (Controller.Instance[1].TextDisplay == SHOW_FADERS) ? BUTTON_LIT : BUTTON_OFF, 0));
+    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Controller.Instance[1].CommandButtons[KNOBS_SELECT], (Controller.Instance[1].TextDisplay == SHOW_KNOBS) ? BUTTON_LIT : BUTTON_OFF, 0));
+    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Controller.Instance[1].CommandButtons[SONGSRACKS_SELECT], (Controller.Instance[1].TextDisplay == SHOW_SONGS) ? BUTTON_LIT : BUTTON_OFF, 0));
 } */
 
 // Adjust row assignments for where Racks/Songs/Variations/Songparts are shown
@@ -198,20 +201,20 @@ void LibMain::SetRowAssignments()
 
     bool setlistmode = inSetlistMode();
 
-    for (uint8_t x = 0; x < Surface.ButtonRows; x++)
+    for (uint8_t x = 0; x < Controller.Instance[1].ButtonRows; x++)
     {
-        Surface.Row[x].Showing = SHOW_ASSIGNED;
+        Controller.Instance[1].Row[x].Showing = SHOW_ASSIGNED;
     }
 
     //if (widgetExists(RACKROW_WIDGETNAME)) {
     //    widgetval = getWidgetCaption(RACKROW_WIDGETNAME);
-    //    for (x = 0; x < Surface.ButtonRows; x++)
+    //    for (x = 0; x < Controller.Instance[1].ButtonRows; x++)
     //    {
     //        if (row_tags[x] == widgetval)
     //        {
-    //            Surface.RackRow = x;
-    //            Surface.Row[Surface.RackRow].Showing = (setlistmode) ? SHOW_SONGS : SHOW_RACKSPACES;
-    //            DisplayRow(Surface.Row[Surface.RackRow], true);
+    //            Controller.Instance[1].RackRow = x;
+    //            Controller.Instance[1].Row[Controller.Instance[1].RackRow].Showing = (setlistmode) ? SHOW_SONGS : SHOW_RACKSPACES;
+    //            DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], true);
     //            break;
     //        }
     //    }
@@ -219,30 +222,30 @@ void LibMain::SetRowAssignments()
 
     //if (widgetExists(VARROW_WIDGETNAME)) {
     //    widgetval = getWidgetCaption(VARROW_WIDGETNAME);
-    //    for (x = 0; x < Surface.ButtonRows; x++)
+    //    for (x = 0; x < Controller.Instance[1].ButtonRows; x++)
     //    {
     //        if (row_tags[x] == widgetval)
     //        {
-    //            Surface.VarRow = x;
-    //            Surface.Row[Surface.VarRow].Showing = (setlistmode) ? SHOW_SONGPARTS : SHOW_VARIATIONS;
-    //            DisplayRow(Surface.Row[Surface.VarRow], true);
+    //            Controller.Instance[1].VarRow = x;
+    //            Controller.Instance[1].Row[Controller.Instance[1].VarRow].Showing = (setlistmode) ? SHOW_SONGPARTS : SHOW_VARIATIONS;
+    //            DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].VarRow], true);
     //            break;
     //        }
     //    }
     //}
-    // scriptLog("RackRow: " + std::to_string(Surface.RackRow), 1);
-    // scriptLog("VarRow: " + std::to_string(Surface.VarRow), 1);
+    // scriptLog("RackRow: " + std::to_string(Controller.Instance[1].RackRow), 1);
+    // scriptLog("VarRow: " + std::to_string(Controller.Instance[1].VarRow), 1);
 }
 
 // For "bank switching" between different fader/knob/button banks, this is for keeping the
 // knobs and faders on the same bank_name if the new fader/knob bank shares the same name
 void LibMain::SyncBankIDs(uint8_t syncrow)
 {
-    if (Surface.Row[syncrow].BankValid()) {
-        std::string rowname = Surface.Row[syncrow].ActiveBankID();
-        for (int x = 0; x < std::size(Surface.Row); x++)
+    if (Controller.Instance[1].Row[syncrow].BankValid()) {
+        std::string rowname = Controller.Instance[1].Row[syncrow].ActiveBankID();
+        for (int x = 0; x < std::size(Controller.Instance[1].Row); x++)
         {
-            if (Surface.Row[x].makeActiveBank(rowname)) DisplayRow(Surface.Row[x]);
+            if (Controller.Instance[1].Row[x].makeActiveBank(rowname)) DisplayRow(Controller.Instance[1].Row[x]);
         }
     }
 }
@@ -258,10 +261,10 @@ void LibMain::Notify(std::string text)
 /// </summary>
 /// <param name="column">unused, deprecated</param>
 /// <param name="label">text, automatically trimmed to 28 characters</param>
-void LibMain::DisplayTopLeft(uint8_t column, const std::string label)
-{
-    if (column <= 8 && !Surface.P1MType) { DisplayText(0, 0, label, 28); }
-}
+//void LibMain::DisplayTopLeft(uint8_t column, const std::string label)
+//{
+//    if (column <= 8 && !Controller.Instance[1].P1MType) { DisplayText(0, 0, label, 28); }
+//}
 
 void LibMain::DisplayControlLabel(uint8_t column, const std::string label)
 {
@@ -284,14 +287,14 @@ void LibMain::DisplayFaders(SurfaceRow Row)
 
     if (! Row.BankValid()) // if there are no FaderBanks or ActiveFaderBank is out of range we clear the display
     {
-        // if ((Surface.TextDisplay == SHOW_FADERS && Row.WidgetID == "f") || (Surface.TextDisplay == SHOW_KNOBS && Row.WidgetID == "k")) { ClearMCUDisplay(); }
+        // if ((Controller.Instance[1].TextDisplay == SHOW_FADERS && Row.WidgetID == "f") || (Controller.Instance[1].TextDisplay == SHOW_KNOBS && Row.WidgetID == "k")) { ClearMCUDisplay(); }
         if (Row.Type == KNOB_TYPE) { ClearMCUDisplay(); }
         else if (Row.Type == FADER_TYPE) { ClearMCUDisplay(2); }
         else for (x = 0; x < Row.Columns; x++)
         {
             DisplayWidgetValue(Row, (uint8_t)x, 0);
-            //Surface.SoftbuttonArray.set(x, formatSoftbuttonText("-"));
-            Surface.SoftbuttonArray.set(x, "-");
+            //Controller.Instance[1].SoftbuttonArray.set(x, formatSoftbuttonText("-"));
+            Controller.Instance[1].SoftbuttonArray.set(x, "-");
         }
     }
     else
@@ -319,7 +322,7 @@ void LibMain::DisplayFaders(SurfaceRow Row)
                 Label = widget.Caption;
                 TextValue = widget.TextValue;
                 Color = widget.RgbLitColor;
-                if (Row.Type == FADER_TYPE) Surface.P1MColorbars[x] = Color;
+                if (Row.Type == FADER_TYPE) Controller.Instance[1].P1MColorbars[x] = Color;
             }
             else  // we end up here if the widget doesn't exist, so then we set the whole thing blank
             {
@@ -329,7 +332,7 @@ void LibMain::DisplayFaders(SurfaceRow Row)
                 // Show = false;
             }
 
-            if (Surface.P1MType) {
+            if (Controller.Instance[1].P1MType) {
                 DisplayWidgetValue(Row, (uint8_t)x, Value); // move fader or show knob position
                 if (Row.Type == FADER_TYPE || Row.Type == KNOB_TYPE) {
                     DisplayText(x, Row.Type == FADER_TYPE ? 3 : 0, Label, 7);
@@ -337,8 +340,8 @@ void LibMain::DisplayFaders(SurfaceRow Row)
                 }
                 else if (Row.Type == SOFTBUTTON_TYPE)
                 {
-                    // Surface.SoftbuttonArray.set(x, formatSoftbuttonText(Label));
-                    Surface.SoftbuttonArray.set(x, Label);
+                    // Controller.Instance[1].SoftbuttonArray.set(x, formatSoftbuttonText(Label));
+                    Controller.Instance[1].SoftbuttonArray.set(x, Label);
                 }
             }
 
@@ -358,7 +361,8 @@ void LibMain::DisplayFaders(SurfaceRow Row)
             setWidgetValue(oscwidget, Value);
         }
     }
-    if (Row.Type == FADER_TYPE) DisplayP1MColorbars();
+    if (Row.Type == FADER_TYPE)
+        sendMidiMessageToMidiOutDevice(Controller.Instance[1].OutPort, Controller.Instance[1].DisplayP1MColorbars());
 }
 
 // Displays Faders or Knobs on the LCD display
@@ -456,7 +460,7 @@ SurfaceWidget LibMain::PopulateWidget(std::string widgetname)
             if (widget.SurfacePrefix == THIS_PREFIX)
             {
 
-                widget.RowNumber = Surface.IdentifySurfaceRow(widget.WidgetID);
+                widget.RowNumber = Controller.Instance[1].IdentifySurfaceRow(widget.WidgetID);
 
                 // is it a valid row identifier for this Surface?
                 if (widget.RowNumber >= 0)
@@ -465,9 +469,9 @@ SurfaceWidget LibMain::PopulateWidget(std::string widgetname)
                     {
                         widget.IsRowParameterWidget = false;
                         widget.Column = std::stoi(control_number);
-                        if (widget.RowNumber >= 0 && widget.RowNumber < std::size(Surface.Row))
+                        if (widget.RowNumber >= 0 && widget.RowNumber < std::size(Controller.Instance[1].Row))
                         {
-                            if (widget.Column < Surface.Row[widget.RowNumber].Columns)
+                            if (widget.Column < Controller.Instance[1].Row[widget.RowNumber].Columns)
                             {
                                 widget.IsSurfaceItemWidget = true;
                                 widget.TextValue = getWidgetTextValue(widgetname);

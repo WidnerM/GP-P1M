@@ -12,7 +12,10 @@ void RefreshTimer::timerCallback()  // what gets done on the periodic timer
 {
     if (lib == nullptr)
         return;
-    lib->ScheduledSoftsend();
+    // lib->ScheduledSoftsend();
+	std::string midimessage = LibMain::Controller.Instance[1].Softsend();
+    if (midimessage.length() > 2) { lib->QueueMidi(midimessage); }
+	//lib->SendQueuedMidi(); // send any queued sysex messages
 }
 
 void LibMain::lambdaDemo(std::string text)

@@ -1,8 +1,13 @@
 #pragma once
 
+#include "gigperformer/sdk/GPMidiMessages.h"
+#include "gigperformer/sdk/GPUtils.h"
+#include "gigperformer/sdk/GigPerformerAPI.h"
+#include "gigperformer/sdk/types.h"
 #include "LibMain.h"
 #include "MCU_Classes.h"
 
+// SurfaceWidget member functions
 
 bool SurfaceWidget::IsFader()
 {
@@ -13,6 +18,8 @@ bool SurfaceWidget::IsKnob()
 {
 	return (WidgetID == KNOB_TAG);
 }
+
+
 
 // basic code to format the two-line softbutton display
 // could improve it by deciding where to line break if > 8 characters

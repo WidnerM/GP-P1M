@@ -6,8 +6,10 @@ std::vector<std::string> panelNames = { "MCU to OSC" };
 std::vector<std::string> relativePanelLocations = { "MCUtoOSC.gppanel" };
 
 // make global variable Surface static so it can be referened in asychronous RefreshTimer calls
-SrfcClass staticSurface;
-SrfcClass LibMain::Surface = staticSurface;
+// SrfcClass staticSurface;
+// SrfcClass LibMain::Surface = staticSurface;
+SrfcArray staticController;
+SrfcArray LibMain::Controller = staticController;
 
 std::string pathToMe; // This needs to be initialized from the initialization secttion of the LibMain class so it can be used in the standalone functions directly below
 
@@ -88,8 +90,8 @@ void LibMain::InvokeMenu(int index)
         case 0:
             // OnStatusChanged(GPStatus_GigFinishedLoading);
             // setWidgetBounds("BoundsWidget", 10, 10, 100, 100);
-            InitializeSoftbuttons();
-            SendSoftbuttons(1, 80);
+            Controller.Instance[1].SoftbuttonArray.Initialize();
+            // SendSoftbuttons(1, 80);
             SendSoftbuttonCodes(1, 80);
             break;
         case 1:
@@ -122,6 +124,19 @@ void LibMain::sendMidiMessage(const uint8_t* MidiMessage, int length) {
     }
 }
 
+// Send a midi message to the out port for the specified daw instance (1-3)
+void LibMain::sendMidiMessage(uint8_t daw, std::string MidiMessage) {
+        sendMidiMessageToMidiOutDevice(Controller.Instance[daw].OutPort, MidiMessage);
+}
+
+void LibMain::sendMidiMessage(uint8_t daw, gigperformer::sdk::GPMidiMessage MidiMessage) {
+        sendMidiMessageToMidiOutDevice(Controller.Instance[daw].OutPort, MidiMessage);
+}
+
+void LibMain::sendMidiMessage(uint8_t daw, const uint8_t* MidiMessage, int length) {
+        sendMidiMessageToMidiOutDevice(Controller.Instance[daw].OutPort, MidiMessage, length);
+}
+
 // Takes hex string (e.g., "F0 2A b4"), converts, and sends
 /* void LibMain::sendHexMidiMessage(std::string MidiMessage) {
     sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(MidiMessage);
@@ -129,7 +144,7 @@ void LibMain::sendMidiMessage(const uint8_t* MidiMessage, int length) {
 
 void LibMain::sendPort4Message(std::string MidiMessage) {
     // sendMidiMessageToMidiOutDevice(P1Port4Out, MidiMessage);
-    sendMidiMessageToMidiOutDevice(Surface.PortFourOut, MidiMessage);
+    sendMidiMessageToMidiOutDevice(Controller.Instance[1].PortFourOut, MidiMessage);
 }
 
 
@@ -143,12 +158,12 @@ void LibMain::SetSurfaceLayout(uint8_t config) {
 
     if (config >= 0 && config <= 3)
     {
-        for (auto x = 0; x < sizeof(Surface.CommandButtons); ++x)
+        for (auto x = 0; x < sizeof(Controller.Instance[1].CommandButtons); ++x)
         {
-            DisplayButton(Surface.CommandButtons[x], BUTTON_OFF);  // turn off all the prior mode indicators
-            Surface.CommandButtons[x] = config_array[config][x];
+            DisplayButton(Controller.Instance[1].CommandButtons[x], BUTTON_OFF);  // turn off all the prior mode indicators
+            Controller.Instance[1].CommandButtons[x] = config_array[config][x];
         }
-        Surface.ButtonLayout = config;
+        Controller.Instance[1].ButtonLayout = config;
         // DisplayModeButtons();
     }
 }
