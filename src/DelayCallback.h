@@ -14,5 +14,6 @@ class RefreshTimer : public juce::Timer
 {
 public:
     void timerCallback() override;
+    uint8_t countdown = 0;
 };
 

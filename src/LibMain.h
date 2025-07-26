@@ -81,14 +81,12 @@ public:
     void CleanMCU();
     void Notify(std::string text);
     void DisplayText(uint8_t column, uint8_t row, std::string text, uint8_t maxlength);
-    void DisplayBankInfo(std::string text);
-    // void DisplayModeButtons();
+    void DisplayTopRight(std::string text);
+    // void DisplayTopLeft(uint8_t column, const std::string caption);
     void DisplayButton(uint8_t button, uint8_t value);
-    void SetRowAssignments();
     void SyncBankIDs(uint8_t syncrow);
 
     void DisplayWidgetValue(SurfaceRow Row, uint8_t column, double Value);
-    // void DisplayTopLeft(uint8_t column, const std::string caption);
     void DisplayControlLabel(uint8_t column, const std::string caption);
     uint8_t KnobDotValue(uint8_t column);
     uint8_t KnobRingValue(uint8_t column);
@@ -99,7 +97,7 @@ public:
     
 
     // from P1Routines.cpp
-    void ScheduledSoftsend();
+    bool ScheduledSoftsend();
     std::string SendSoftbuttonCodes(uint8_t first, uint8_t last);
 	bool QueueMidi(std::string sysex); // Queues a sysex message to be sent later, to avoid overloading the P1-M port 4
 	bool SendQueuedMidi(); // pops one message and sends it to the P1-M port 4
@@ -209,6 +207,7 @@ public:
             registerCallback("OnSongPartChanged");
             registerCallback("OnModeChanged");
             registerCallback("OnWidgetValueChanged");
+            // registerCallback("OnWidgetCaptionChanged");  // this is only called if the user changes a caption in the UI
             registerCallback("OnGlobalPlayStateChanged");
             registerCallback("OnRackspaceActivated");
             registerCallback("OnVariationChanged");
@@ -260,6 +259,8 @@ public:
                 }
             }
         }
+
+		QueueMidi(Controller.Instance[1].Softsend()); // send any queued softbutton messages before we close 
     }
 
     // Light or unlight the play state button
@@ -286,35 +287,38 @@ public:
 
         std::string widget_prefix, control_type, control_bank, control_number, control_color, setwidget;
 
+        SurfaceWidget widget = PopulateWidget(widgetName);
+
+        if (widget.IsSurfaceItemWidget)
+        {
+            if (widget.BankID == Controller.Instance[1].Row[widget.RowNumber].ActiveBankID() &&
+                Controller.Instance[1].Row[widget.RowNumber].Type == SOFTBUTTON_TYPE && !Controller.Instance[1].ShowRacksSongs)
+            {
+                Controller.Instance[1].SoftbuttonArray.setLabel(widget.Column, newCaption);
+            }
+			// scriptLog("MC: Widget caption changed: " + widgetName + " to " + newCaption, 1);
+        }
+
         // scriptLog("MC: Callback for Caption " + widgetName, 1);
         std::vector< std::string> name_segments = ParseWidgetName(widgetName, '_');
 
+        // this stuff is outdated and can probably be deleted
         if (name_segments.size() >= 4)
         {
-            widget_prefix = name_segments[0];
-            control_type = name_segments[1];
-            control_bank = name_segments[2];
-            control_number = name_segments[3];
-            if (name_segments.size() > 4) {
-                control_color = name_segments[4];
-            }
-
-            column = std::stoi("0" + control_number);
-            if (std::to_string(column) != control_number) { column = 255; } // flag it as 255 if it's an invalid id
 
             for (row = 0; row < std::size(Controller.Instance[1].Row); row++)  // cycle through each Row of control
             {
-                if (control_type == Controller.Instance[1].Row[row].WidgetID && Controller.Instance[1].Row[row].Showing == SHOW_ASSIGNED && column <= Controller.Instance[1].Row[row].Columns && Controller.Instance[1].Row[row].BankValid())
+                if (widget.WidgetID == Controller.Instance[1].Row[row].WidgetID && Controller.Instance[1].Row[row].Showing == SHOW_ASSIGNED && widget.Column <= Controller.Instance[1].Row[row].Columns && Controller.Instance[1].Row[row].BankValid())
                 {
                     //scriptLog("MC: Callback for " + widgetName, 1);
-                    if (control_bank.compare(Controller.Instance[1].Row[row].BankIDs[Controller.Instance[1].Row[row].ActiveBank]) == 0)  // if it's the active bank we update the OSC label
+                    if (widget.BankID.compare(Controller.Instance[1].Row[row].BankIDs[Controller.Instance[1].Row[row].ActiveBank]) == 0)  // if it's the active bank we update the OSC label
                     {
 
-                        Value = getWidgetValue(widgetName);
+                        // Value = getWidgetValue(widgetName);
                         setWidgetCaption(Controller.Instance[1].Row[row].WidgetPrefix + "_active_" + control_number, newCaption);
                         // Gig Performer doesn't send OSC updates for just the caption.  Need to move the value to make it send an OSC update.
-                        Value > 0.9 ? setWidgetValue(widgetName, Value - 0.05) : setWidgetValue(widgetName, Value + 0.05);
-                        setWidgetValue(widgetName, Value);
+                        // widget.Value > 0.9 ? setWidgetValue(widgetName, Value - 0.05) : setWidgetValue(widgetName, Value + 0.05);
+                        // setWidgetValue(widgetName, Value);
                     }
                 }
             }
@@ -375,10 +379,9 @@ public:
                         DisplayWidgetValue(Controller.Instance[1].Row[widget.RowNumber], widget.Column, newValue);
                         if (widget.WidgetID == FADER_TAG) { DisplayText(widget.Column, 2, widget.TextValue, 7); }
                         if (widget.WidgetID == KNOB_TAG) { DisplayText(widget.Column, 1, widget.TextValue, 7); }
-                        //if (Controller.Instance[1].reportWidgetChanges == true && Controller.Instance[1].TextDisplay != SHOW_SONGS && !Controller.Instance[1].P1MType)  // show changes on upper left display if not showing racks/songs
-                        //{
-                        //    DisplayTopLeft(widget.Column, widget.Caption + " : " + widget.TextValue);
-                        //}
+                        // if (widget.WidgetID == SOFTBUTTON_TAG && !Controller.Instance[1].ShowRacksSongs) {
+						//	Controller.Instance[1].SoftbuttonArray.set(widget.Column, widget.Caption);  // too slow to get picked up
+						// }
                     }
                 }
             }
@@ -409,10 +412,11 @@ public:
                 strcat(str, extra);
             }
             scriptLog(str, 0);
-            //if (memcmp(data, ACK, sizeof(data)) == 0)
-            //{ 
-            //    SendQueuedMidi(); // if we get the ACK from the P1-M it's ok to send the next block
-            //}
+            // this was part of a routine to wait for ACKs between sysex blocks, but it's just too slow in practice
+            // if (memcmp(data, ACK, sizeof(data)) == 0)
+            // { 
+            //     SendQueuedMidi(); // if we get the ACK from the P1-M it's ok to send the next block
+            // }
         }
         else
         {
@@ -449,10 +453,15 @@ public:
     {
         uint8_t row;
         
-        // scriptLog("MC: Song changed to number " + std::to_string(newIndex), 1);
+        // scriptLog("MC: Song changed to number " + std::to_string(newIndex), 0);
         // scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
         
-        for (row = 0; row < Controller.Instance[1].ButtonRows; row++)
+        if (Controller.Instance[1].Row[Controller.Instance[1].RackRow].Showing == SHOW_SONGS)
+        {
+            DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], true);
+        }
+
+        /* for (row = 0; row < Controller.Instance[1].ButtonRows; row++)
         {
             if ((Controller.Instance[1].Row[row].Showing == SHOW_SONGS) && (getCurrentSongIndex() >= 0))
             {
@@ -462,7 +471,7 @@ public:
             //{
             //    DisplaySongParts(Controller.Instance[1].Row[row], getCurrentSongpartIndex());
             //}
-        }
+        } */
     } 
 
     // Called when a song part is changed
@@ -556,6 +565,7 @@ public:
 
                 // loop this three times for prefic mc1 mc2 mc3 (or just mc in place of mc1)
                 // and instead of Controller.Instance[1].addSurfaceBank use SurfaceArray[x].addSurfaceBank
+                // 
                 // if it's a widget we're interested in, add a bank for it if it doesn't already exist, and listen for it
                 if (prefix == THIS_PREFIX && bank != "active" )  // we don't listen for "active" widgets, which are generally just for linking to an OSC display
                 {
@@ -604,13 +614,6 @@ public:
         std::string widgetname, setting;
         std::vector<std::string> widgetlist, globalwidgetlist;
 
-        // scriptLog("MC: Rackspace Changed to " + getRackspaceName(getCurrentRackspaceIndex()),1);
-        //Controller.Instance[1].reportWidgetChanges = false;
-        //if (Controller.Instance[1].TextDisplay != SHOW_SONGS) {   
-        //    ClearMCUDisplay();
-        //    ClearMCUDisplay(2);
-        //}
-
         // Clear the BankIDs and active bank data from the prior rackspace's widget set
         for (row = 0; row < std::size(Controller.Instance[1].Row); row++)
         {
@@ -624,7 +627,7 @@ public:
         widgetlist.insert(widgetlist.end(), globalwidgetlist.begin(), globalwidgetlist.end());
         buildSurfaceModel(widgetlist);
 
-        // scriptLog("Done buildSurface", 1);
+        // scriptLog("Done buildSurface", 0);
 
         // Button row initializations
         for (row = 0; row < Controller.Instance[1].ButtonRows; row++) {
@@ -655,16 +658,12 @@ public:
         // we need to decisively set the active bank because it's possible that upon rackspace or variation change more than one, or zero, are set
         setActiveBank(KNOB_ROW);
         DisplayFaders(Controller.Instance[1].Row[KNOB_ROW]);
-        if (!Controller.Instance[1].Row[KNOB_ROW].BankValid()) { ClearMCUDisplay(); }
 
         // scriptLog("Done Knob row", 1);
         setActiveBank(FADER_ROW);
         DisplayFaders(Controller.Instance[1].Row[FADER_ROW]);
-        if (!Controller.Instance[1].Row[FADER_ROW].BankValid()) { ClearMCUDisplay(2); }
-
-        // DisplayModeButtons();
         
-        // scriptLog("Finishing OnRackspaceChanged.", 1);
+        // scriptLog("Finishing OnRackspaceChanged.", 0);
 
         Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
     }
@@ -689,14 +688,23 @@ public:
 
         // DisplayModeButtons();
 
-        DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow]);
+        DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], true);
     }
 
     void OnOpen() override
     {
         // ExtensionWindow::initialize();
-        juce::MessageManager::getInstance()->callAsync([]() { });  // this starts the juce library
-        refreshTimer.startTimer(50);
+
+        // this was for setting up a periodic refresh of the softbuttons, or any periodic asynchrounous task
+        // while the asynchronous softbutton update worked (by limiting refresh cycles) it was never satisfying
+        // in practice because the update cycle could happen in the middle of a softbutton page, leaving it showing a mix of
+		// new and stale softbutton captions. Speeding up the refresh rate improved that, but at the cost of CPU and excess sysex.
+		// The faster we make the refresh, the higher the likelihood it runs in the middle of a softbutton page change.
+        // For now we just limit softbutton page updates to song/rack/variation/sb page changes.  Specifically, softbuttons won't
+        // update their labels if a widget caption changes.
+        
+        // juce::MessageManager::getInstance()->callAsync([]() { });  // this starts the juce library
+        // refreshTimer.startTimer(100);
     }
 
     void Initialization() override

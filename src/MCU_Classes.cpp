@@ -52,22 +52,24 @@ bool P1Softbutton::formatSoftbuttonText(std::string label)
 }
 
 
-bool P1SoftbuttonArray::set(uint8_t position, P1Softbutton button)
+bool P1SoftbuttonArray::setLabel(uint8_t position, P1Softbutton button)
 {
 	if (position < 80) {
 		Buttons[position] = button;
-		Dirty = true;
+		Dirty[(uint8_t)(position / P1M_NAMES_PER_PAGE)] = true;
 		return true;
 	}
 	else return false;
 }
 
-bool P1SoftbuttonArray::set(uint8_t position, std::string text)
+bool P1SoftbuttonArray::setLabel(uint8_t position, std::string text)
 {
 	if (position < 80) {
 		Buttons[position].formatSoftbuttonText(text);
-		Dirty = true;
+		Dirty[(uint8_t) (position / P1M_NAMES_PER_PAGE)] = true;
 		return true;
 	}
 	else return false;
 }
+
+

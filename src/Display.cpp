@@ -86,7 +86,6 @@ void LibMain::DisplayText(uint8_t column, uint8_t row, std::string text, uint8_t
     }
     else if (row < 4)
     {
-        // DisplayP1MText(column, row, text, maxlength); // No longer need this post fw 1.08 for P1-M
         if (column < 8) {
             // Could  handle this better...  Adding blanks to the text to display so we're guaranteed to clear whatever's there, then just use front 'maxlength' chars
             subtext = cleanSysex(text);
@@ -99,7 +98,7 @@ void LibMain::DisplayText(uint8_t column, uint8_t row, std::string text, uint8_t
 }
 
 // Displays a string on the upper right of the MCU text display
-void LibMain::DisplayBankInfo(std::string text)
+void LibMain::DisplayTopRight(std::string text)
 {
     std::string hexmessage, subtext, binmessage;
 
@@ -112,7 +111,17 @@ void LibMain::DisplayBankInfo(std::string text)
     }
 }
 
-// as of Feb 9, 2025 the P1-M/Nano firmware doesn't do anything with this,
+/// <summary>
+/// Displays text on the top left portion of the MCU display using a MIDI sysex message.  Unsafe chars in the text will be deleted before sending.
+/// </summary>
+/// <param name="column">unused, deprecated</param>
+/// <param name="label">text, automatically trimmed to 28 characters</param>
+//void LibMain::DisplayTopLeft(uint8_t column, const std::string label)
+//{
+//    if (column <= 8 && !Controller.Instance[1].P1MType) { DisplayText(0, 0, label, 28); }
+//}
+
+// as of July 2025 the P1-M/Nano firmware doesn't do anything with this,
 // but we still do it to adhere to MCU protocol
 uint8_t LibMain::KnobDotValue(uint8_t column)
 {
@@ -184,59 +193,6 @@ void LibMain::DisplayButton(uint8_t button, uint8_t value)
     sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(button, (value == 0) ? BUTTON_OFF : BUTTON_LIT, 0));
 }
 
-// light buttons to indicate what display mode we're in - showing faders, knobs, or songs/racks on the LCD display
-/* void LibMain::DisplayModeButtons()
-{
-    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Controller.Instance[1].CommandButtons[FADERS_SELECT], (Controller.Instance[1].TextDisplay == SHOW_FADERS) ? BUTTON_LIT : BUTTON_OFF, 0));
-    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Controller.Instance[1].CommandButtons[KNOBS_SELECT], (Controller.Instance[1].TextDisplay == SHOW_KNOBS) ? BUTTON_LIT : BUTTON_OFF, 0));
-    sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Controller.Instance[1].CommandButtons[SONGSRACKS_SELECT], (Controller.Instance[1].TextDisplay == SHOW_SONGS) ? BUTTON_LIT : BUTTON_OFF, 0));
-} */
-
-// Adjust row assignments for where Racks/Songs/Variations/Songparts are shown
-void LibMain::SetRowAssignments()
-{
-    std::string row_tags[] = TAG_ARRAY;
-    std::string widgetval;
-    uint8_t x;
-
-    bool setlistmode = inSetlistMode();
-
-    for (uint8_t x = 0; x < Controller.Instance[1].ButtonRows; x++)
-    {
-        Controller.Instance[1].Row[x].Showing = SHOW_ASSIGNED;
-    }
-
-    //if (widgetExists(RACKROW_WIDGETNAME)) {
-    //    widgetval = getWidgetCaption(RACKROW_WIDGETNAME);
-    //    for (x = 0; x < Controller.Instance[1].ButtonRows; x++)
-    //    {
-    //        if (row_tags[x] == widgetval)
-    //        {
-    //            Controller.Instance[1].RackRow = x;
-    //            Controller.Instance[1].Row[Controller.Instance[1].RackRow].Showing = (setlistmode) ? SHOW_SONGS : SHOW_RACKSPACES;
-    //            DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], true);
-    //            break;
-    //        }
-    //    }
-    //}
-
-    //if (widgetExists(VARROW_WIDGETNAME)) {
-    //    widgetval = getWidgetCaption(VARROW_WIDGETNAME);
-    //    for (x = 0; x < Controller.Instance[1].ButtonRows; x++)
-    //    {
-    //        if (row_tags[x] == widgetval)
-    //        {
-    //            Controller.Instance[1].VarRow = x;
-    //            Controller.Instance[1].Row[Controller.Instance[1].VarRow].Showing = (setlistmode) ? SHOW_SONGPARTS : SHOW_VARIATIONS;
-    //            DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].VarRow], true);
-    //            break;
-    //        }
-    //    }
-    //}
-    // scriptLog("RackRow: " + std::to_string(Controller.Instance[1].RackRow), 1);
-    // scriptLog("VarRow: " + std::to_string(Controller.Instance[1].VarRow), 1);
-}
-
 // For "bank switching" between different fader/knob/button banks, this is for keeping the
 // knobs and faders on the same bank_name if the new fader/knob bank shares the same name
 void LibMain::SyncBankIDs(uint8_t syncrow)
@@ -256,15 +212,6 @@ void LibMain::Notify(std::string text)
     consoleLog(text);
 }
 
-/// <summary>
-/// Displays text on the top left portion of the MCU display using a MIDI sysex message.  Unsafe chars in the text will be deleted before sending.
-/// </summary>
-/// <param name="column">unused, deprecated</param>
-/// <param name="label">text, automatically trimmed to 28 characters</param>
-//void LibMain::DisplayTopLeft(uint8_t column, const std::string label)
-//{
-//    if (column <= 8 && !Controller.Instance[1].P1MType) { DisplayText(0, 0, label, 28); }
-//}
 
 void LibMain::DisplayControlLabel(uint8_t column, const std::string label)
 {
@@ -287,14 +234,17 @@ void LibMain::DisplayFaders(SurfaceRow Row)
 
     if (! Row.BankValid()) // if there are no FaderBanks or ActiveFaderBank is out of range we clear the display
     {
-        // if ((Controller.Instance[1].TextDisplay == SHOW_FADERS && Row.WidgetID == "f") || (Controller.Instance[1].TextDisplay == SHOW_KNOBS && Row.WidgetID == "k")) { ClearMCUDisplay(); }
         if (Row.Type == KNOB_TYPE) { ClearMCUDisplay(); }
-        else if (Row.Type == FADER_TYPE) { ClearMCUDisplay(2); }
+        else if (Row.Type == FADER_TYPE) 
+        {
+            ClearMCUDisplay(2);
+			Controller.Instance[1].ClearColorBars();
+            sendMidiMessageToMidiOutDevice(Controller.Instance[1].OutPort, Controller.Instance[1].DisplayP1MColorbars());
+        }
         else for (x = 0; x < Row.Columns; x++)
         {
             DisplayWidgetValue(Row, (uint8_t)x, 0);
-            //Controller.Instance[1].SoftbuttonArray.set(x, formatSoftbuttonText("-"));
-            Controller.Instance[1].SoftbuttonArray.set(x, "-");
+            Controller.Instance[1].SoftbuttonArray.setLabel(x, "-");
         }
     }
     else
@@ -310,7 +260,7 @@ void LibMain::DisplayFaders(SurfaceRow Row)
     }
 
     // Set the positions and displays for each of the faders using the active bank
-    for (x = Row.Columns; x >= 0; x--)
+    for (x = Row.Columns - 1; x >= 0; x--)
     {
         if (!Row.BankIDs.empty())
         {
@@ -319,10 +269,10 @@ void LibMain::DisplayFaders(SurfaceRow Row)
             if (widget.IsSurfaceItemWidget)
             {
                 Value = widget.Value;
-                Label = widget.Caption;
                 TextValue = widget.TextValue;
+                Label = widget.Caption;
                 Color = widget.RgbLitColor;
-                if (Row.Type == FADER_TYPE) Controller.Instance[1].P1MColorbars[x] = Color;
+                if (Row.Type == FADER_TYPE && x<8) Controller.Instance[1].P1MColorbars[x] = Color;
             }
             else  // we end up here if the widget doesn't exist, so then we set the whole thing blank
             {
@@ -341,7 +291,7 @@ void LibMain::DisplayFaders(SurfaceRow Row)
                 else if (Row.Type == SOFTBUTTON_TYPE)
                 {
                     // Controller.Instance[1].SoftbuttonArray.set(x, formatSoftbuttonText(Label));
-                    Controller.Instance[1].SoftbuttonArray.set(x, Label);
+                    Controller.Instance[1].SoftbuttonArray.setLabel(x, Label);
                 }
             }
 
@@ -349,17 +299,7 @@ void LibMain::DisplayFaders(SurfaceRow Row)
         else {
             Label = " ";
         }
-        // if the OSC interface widget exists, set or clear it appropriately
-        oscwidget = Row.WidgetPrefix + (std::string)"_active_" + std::to_string(x);
 
-        // scriptLog("MC: Set " + oscwidget + " to " + Label,1);
-        if (widgetExists(oscwidget) == true)
-        {
-            setWidgetCaption(oscwidget, Label);
-            // OSC won't send update for Caption only, we need to make sure Value changes.
-            if (Value == getWidgetValue(oscwidget)) { Value > 0.9 ? setWidgetValue(oscwidget, Value - 0.05) : setWidgetValue(oscwidget, Value + 0.05); }
-            setWidgetValue(oscwidget, Value);
-        }
     }
     if (Row.Type == FADER_TYPE)
         sendMidiMessageToMidiOutDevice(Controller.Instance[1].OutPort, Controller.Instance[1].DisplayP1MColorbars());
@@ -368,7 +308,6 @@ void LibMain::DisplayFaders(SurfaceRow Row)
 // Displays Faders or Knobs on the LCD display
 void LibMain::DisplaySoftbuttons(SurfaceRow Row)
 {
-    scriptLog("Showing softbuttons", 0);
     DisplayFaders(Row);
 }
 
@@ -382,7 +321,8 @@ void LibMain::DisplayButtonRow(SurfaceRow Row, uint8_t firstbutton, uint8_t numb
     uint8_t upcolor = 0;
     uint8_t downcolor = 0;
 
-    for (x = 0; x < std::size(Row.BankIDs); x++)  // cycle through banks to turn on/off the panel widget indicators for active bank
+    // cycle through banks to turn on/off the panel widget indicators for active bank
+    for (x = 0; x < std::size(Row.BankIDs); x++)
     {
         widgetname = THIS_PREFIX + (std::string)"_" + Row.WidgetID + "_" + Row.BankIDs[x] + "_i";
         if (widgetExists(widgetname)) {
@@ -396,6 +336,7 @@ void LibMain::DisplayButtonRow(SurfaceRow Row, uint8_t firstbutton, uint8_t numb
             }
         }
     }
+
 
     if (Row.BankValid())
     {

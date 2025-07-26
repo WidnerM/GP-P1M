@@ -15,11 +15,6 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
     if (value == 127) {  // only process button downs
         if (button == Controller.Instance[1].CommandButtons[FADERS_BANK_UP])  // next Fader bank
         {
-            //if (Controller.Instance[1].TextDisplay == SHOW_KNOBS)
-            //{
-            //    Controller.Instance[1].TextDisplay = SHOW_FADERS;
-            //    // DisplayModeButtons();
-            //}
             if (Controller.Instance[1].Row[FADER_ROW].IncrementBank())
             {
                 SyncBankIDs(FADER_ROW);
@@ -28,11 +23,6 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
         }
         else if (button == Controller.Instance[1].CommandButtons[FADERS_BANK_DOWN])  // prior Fader bank
         {
-            //if (Controller.Instance[1].TextDisplay == SHOW_KNOBS)
-            //{
-            //    Controller.Instance[1].TextDisplay = SHOW_FADERS;
-            //    // DisplayModeButtons();
-            //}
             if (Controller.Instance[1].Row[FADER_ROW].DecrementBank())
             {
                 SyncBankIDs(FADER_ROW);
@@ -40,11 +30,6 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
         }
         else if (button == Controller.Instance[1].CommandButtons[KNOBS_BANK_UP])  // next Knob bank
         {
-            //if (Controller.Instance[1].TextDisplay == SHOW_FADERS)
-            //{
-            //    Controller.Instance[1].TextDisplay = SHOW_KNOBS;
-            //    // DisplayModeButtons();
-            //}
             if (Controller.Instance[1].Row[KNOB_ROW].IncrementBank())
             {
                 SyncBankIDs(KNOB_ROW);
@@ -52,53 +37,48 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
         }
         else if (button == Controller.Instance[1].CommandButtons[KNOBS_BANK_DOWN])  // prior Knob bank
         {
-            //if (Controller.Instance[1].TextDisplay == SHOW_FADERS)
-            //{
-            //    Controller.Instance[1].TextDisplay = SHOW_KNOBS;
-            //    // DisplayModeButtons();
-            //}
             if (Controller.Instance[1].Row[KNOB_ROW].DecrementBank())
             {
                 SyncBankIDs(KNOB_ROW);
             }
         }
-        else if (button == Controller.Instance[1].CommandButtons[SONGS_BANK_UP])   // next song/rack bank
+        else if (button == Controller.Instance[1].CommandButtons[SONGS_BANK_UP])   // next song/rack/softbutton bank
         {
-            if (inSetlistMode() == 1) { Controller.Instance[1].FirstShownSong += Controller.Instance[1].ShowSongCount; }
-            else { Controller.Instance[1].FirstShownRack += Controller.Instance[1].ShowRackCount; }
-            if (Controller.Instance[1].RackRow < Controller.Instance[1].ButtonRows) { DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], false); }
+            if (Controller.Instance[1].ShowRacksSongs)
+            {
+                if (inSetlistMode() == 1) { Controller.Instance[1].FirstShownSong += Controller.Instance[1].ShowSongCount; }
+                else { Controller.Instance[1].FirstShownRack += Controller.Instance[1].ShowRackCount; }
+                DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], false);
+            }
+            else
+            {
+                if (Controller.Instance[1].Row[SOFTBUTTON_ROW].IncrementBank())
+                {
+                    SyncBankIDs(SOFTBUTTON_ROW);  // this will call DisplayRow() itself, so don't need to call again
+				}
+            }
         }
-        else if (button == Controller.Instance[1].CommandButtons[SONGS_BANK_DOWN])  // prior Song bank
+        else if (button == Controller.Instance[1].CommandButtons[SONGS_BANK_DOWN])  // prior Song/rack/softbutton bank
         {
-            if (inSetlistMode() == 1) { Controller.Instance[1].FirstShownSong -= Controller.Instance[1].ShowSongCount; }
-            else { Controller.Instance[1].FirstShownRack -= Controller.Instance[1].ShowRackCount; }
-            if (Controller.Instance[1].RackRow < Controller.Instance[1].ButtonRows) { DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], false); }
+            if (Controller.Instance[1].ShowRacksSongs)
+            {
+                if (inSetlistMode() == 1) { Controller.Instance[1].FirstShownSong -= Controller.Instance[1].ShowSongCount; }
+                else { Controller.Instance[1].FirstShownRack -= Controller.Instance[1].ShowRackCount; }
+                DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], false);
+            }
+            else
+            {
+                if (Controller.Instance[1].Row[SOFTBUTTON_ROW].DecrementBank())
+                {
+                    SyncBankIDs(SOFTBUTTON_ROW);  // this will call DisplayRow() itself, so don't need to call again
+                }
+            }
         }
         else if (button == Controller.Instance[1].CommandButtons[SETLIST_TOGGLE])  // Toggle between in and out of Setlist mode
         {
             Controller.Instance[1].reportWidgetChanges = false;
             inSetlistMode() ? switchToPanelView() : switchToSetlistView();
             Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
-        }
-        else if (button == Controller.Instance[1].CommandButtons[FADERS_SELECT]) // show faders
-        {
-            //if (Controller.Instance[1].TextDisplay == SHOW_SONGS) { DisplayText(0, 0, "", 28); }  // clear upper left area if we're coming out of Songs/Racks display
-            //Controller.Instance[1].TextDisplay = SHOW_FADERS;
-            //// DisplayModeButtons();
-            DisplayFaders(Controller.Instance[1].Row[FADER_ROW]);
-        }
-        else if (button == Controller.Instance[1].CommandButtons[KNOBS_SELECT]) // show knobs
-        {
-            //if (Controller.Instance[1].TextDisplay == SHOW_SONGS) { DisplayText(0, 0, "", 28); }  // clear upper left area if we're coming out of Songs/Racks display
-            //Controller.Instance[1].TextDisplay = SHOW_KNOBS;
-            //// DisplayModeButtons();
-            DisplayFaders(Controller.Instance[1].Row[KNOB_ROW]);
-        }
-        else if (button == Controller.Instance[1].CommandButtons[SONGSRACKS_SELECT]) // show songlist
-        {
-            // Controller.Instance[1].TextDisplay = SHOW_SONGS;
-            // DisplayModeButtons();
-            if (Controller.Instance[1].RackRow < Controller.Instance[1].ButtonRows) { DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], false); }
         }
         else if (button == SID_TRANSPORT_PLAY) // 
         {
@@ -108,16 +88,17 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
         {
             setPlayheadState(false);
         }
-        else if (button == SID_FADERBANK_FLIP)
+        else if (button == SID_FADERBANK_FLIP) // toggle between songs/racks and softbuttons
         {
             Controller.Instance[1].ShowRacksSongs = !Controller.Instance[1].ShowRacksSongs;
             DisplayButton(SID_FADERBANK_FLIP, Controller.Instance[1].ShowRacksSongs ? 127 : 0);
-            DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], false);
+            DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], true);
         }
-        else for (x = 0; x < Controller.Instance[1].ButtonRows ; x++)
+        else for (x = 0; x < Controller.Instance[1].ButtonRows ; x++)  // cycle through our button rows until we find the one it's in
         {
             if ((button >= Controller.Instance[1].Row[x].FirstID) && (button < Controller.Instance[1].Row[x].FirstID + Controller.Instance[1].Row[x].Columns) )
             {
+                // if it's the softbutton row we process it as song/rack/songpart/variation select, otherwise it drops thru as softbutton toggle
                 if (Controller.Instance[1].Row[x].Type == SOFTBUTTON_TYPE && Controller.Instance[1].ShowRacksSongs)
                 {
                     if (Controller.Instance[1].Row[x].Showing == SHOW_SONGS) // if the Row is in song select mode, process it as a song select
@@ -130,6 +111,7 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
                                 Controller.Instance[1].reportWidgetChanges = false;
                                 switchToSong(songnumber + Controller.Instance[1].FirstShownSong, 0);
                                 Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
+                                return;
                             }
                         }
                         else
@@ -140,6 +122,7 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
                                 Controller.Instance[1].reportWidgetChanges = false;
                                 switchToSongPart(songpartnumber);
                                 Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
+                                return;
                             }
                         }
                     }
@@ -153,6 +136,7 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
                                 Controller.Instance[1].reportWidgetChanges = false;
                                 switchToRackspaceName(getRackspaceName(songnumber + Controller.Instance[1].FirstShownRack));
                                 Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
+                                return;
                             }
                         }
                         else
@@ -163,9 +147,14 @@ void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi 
                                 Controller.Instance[1].reportWidgetChanges = false;
                                 switchToVariation(songpartnumber);
                                 Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
+                                return;
                             }
                         }
                     }
+                }
+                if (Controller.Instance[1].Row[x].Type == SOFTBUTTON_TYPE)
+                {
+                    ToggleButton(Controller.Instance[1].Row[x], button - Controller.Instance[1].Row[x].FirstID);
                 }
                 else if (Controller.Instance[1].Row[x].BankValid()) // make sure ActiveBank is a valid bank to avoid exceptions
                 {
@@ -226,8 +215,6 @@ void LibMain::ProcessKnob(uint8_t column, uint8_t value)  // processes a midi me
                 // if it's above column 7 then something weird is going on and we ignore it
             }
         }
-        // caption = getWidgetCaption(widgetname);  // right now (GP 4.0.2) this is always same as label
-        // Knob[column].SetCaption(caption);
     }
 }
 
@@ -271,9 +258,6 @@ void LibMain::ProcessFader(uint8_t channel, uint8_t data1, uint8_t data2)
         {
             // if it's above channel 9 then something weird is going on and we ignore it
         }
-        // caption = getWidgetCaption(widgetname);  // right now (GP 4.0.2) this is always same as label
-        // scriptLog(caption,1);
-        // Knob[column].SetCaption(caption);
     }
 }
 

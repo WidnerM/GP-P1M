@@ -24,7 +24,8 @@ void LibMain::DisplaySongs(SurfaceRow Row, bool forcetocurrent)
     // Set FirstShownSong correctly for what we're going to show at leftmost position
 	Controller.Instance[1].setFirstShownSong(current, songcount, forcetocurrent);
 
-    // scriptLog("MC: In DisplaySongs, current song = " + std::to_string(current), 1);
+    // scriptLog("MC: In DisplaySongs, current song = " + std::to_string(current) + ", songcount = " + std::to_string(songcount)
+    //    + ", firstShownSong = " + std::to_string(Controller.Instance[1].FirstShownSong), 1);
 
     songindex = Controller.Instance[1].FirstShownSong;
 
@@ -34,12 +35,12 @@ void LibMain::DisplaySongs(SurfaceRow Row, bool forcetocurrent)
         {
             TopLine = ("");
             BottomLine = ("");
-            songname = "-";   // Better to send something to OSC so widgets don't pull up default labels
+            songname = "-";   // Better to send something
         }
         else
         {   
             songname = getSongName(songindex);
-            if (songname == "") { songname = "-"; }  // Better to send something to OSC so widgets don't pull up default labels
+            if (songname == "") { songname = "un-named"; }  // Better to send something
 
         }
         if (songindex == current)
@@ -55,23 +56,8 @@ void LibMain::DisplaySongs(SurfaceRow Row, bool forcetocurrent)
         if (selected == 1) { DisplayWidgetValue(Row, x, BUTTON_LIT); }
         else { DisplayWidgetValue(Row, x, BUTTON_OFF); }
 
-        Controller.Instance[1].SoftbuttonArray.set(x, songname);
+        Controller.Instance[1].SoftbuttonArray.setLabel(x, songname);
 
-        // show songs/racks on LCD display if appropriate, alternating top and bottom rows so we can fit 12 letters per song
-        /* if (Controller.Instance[1].TextDisplay == SHOW_SONGS) {
-            if (inSetlistMode() == 1) { DisplayText(x, x % 2, songname, (x==7) ? 6 : 12); }
-        } */
-
-        // Show the song name on the the OSC display
-        oscwidget = THIS_PREFIX + (std::string) "_" + Row.WidgetID + "_active_" + std::to_string(x);
-        if (widgetExists(oscwidget))
-        {
-            setWidgetCaption(oscwidget, songname);
-            // we force a value change to force OSC to update the Caption.  GP doesn't send an OSC update if WidgetValue stays the same.
-            if (selected == getWidgetValue(oscwidget)) { selected > 0.9 ? setWidgetValue(oscwidget, 0.95 ) : setWidgetValue(oscwidget, 0.05); }
-            // setWidgetValue(oscwidget, 1.0 - selected);  
-            setWidgetValue(oscwidget, selected);
-        }
         songindex++;
     }
 
@@ -91,26 +77,17 @@ void LibMain::DisplaySongParts(SurfaceRow Row, int current)
     {
         if (x >= songpartcount)  // clear the text if there's no song this high
         {
-            songpartname = "-";   // Better to send something to OSC so widgets don't pull up default labels
-            // SetButtonColor(MCU_LOWEST_BUTTON + x, SLMKIII_BLACK);
+            songpartname = "-";   // Better to send something than leave it blank
         }
         else
         {
             songpartname = getSongpartName(getCurrentSongIndex(), x);
-            if (songpartname == "") { songpartname = ""; }
+            if (songpartname == "") { songpartname = "null"; } // this should never happen
         }
 
         DisplayWidgetValue(Row, x + Controller.Instance[1].ShowSongCount, x == current ? BUTTON_LIT : BUTTON_OFF);
-        Controller.Instance[1].SoftbuttonArray.set(x+Controller.Instance[1].ShowSongCount, songpartname);
+        Controller.Instance[1].SoftbuttonArray.setLabel(x+Controller.Instance[1].ShowSongCount, songpartname);
 
-        // Show the song name on the the OSC display and MCU display if appropriate
-        oscwidget = THIS_PREFIX + (std::string) "_" + Row.WidgetID + "_active_" + std::to_string(x);
-        if (widgetExists(oscwidget))
-        {
-            setWidgetCaption(oscwidget, songpartname);
-            setWidgetValue(oscwidget, x == current ? 0.0 : 1.0); // we force a toggle to force OSC to update the Caption.  GP doesn't send an OSC update if WidgetValue stays the same.
-            setWidgetValue(oscwidget, x == current ? 1.0 : 0.0);
-        }
     }
 }
 
@@ -128,7 +105,6 @@ void LibMain::DisplayVariations(SurfaceRow Row, int current)
         if (x >= variationcount)  // clear the text if there's no variation this high
         {
             variationname = "-";   // Better to send something to OSC so widgets don't pull up default labels
-            // SetButtonColor(MCU_LOWEST_BUTTON + x, SLMKIII_BLACK);
         }
         else
         {
@@ -138,19 +114,8 @@ void LibMain::DisplayVariations(SurfaceRow Row, int current)
 
         DisplayWidgetValue(Row, x+Controller.Instance[1].ShowRackCount, x==current ? BUTTON_LIT : BUTTON_OFF);
 
-        Controller.Instance[1].SoftbuttonArray.set(x+Controller.Instance[1].ShowRackCount, variationname);
-        // refreshTimer.softbuttonarray.set(x + 8, formatSoftbuttonText(variationname));
+        Controller.Instance[1].SoftbuttonArray.setLabel(x+Controller.Instance[1].ShowRackCount, variationname);
 
-        // refreshTimer.softbuttonarray.set(x+8, formatSoftbuttonText(variationname));
-
-        // Show the variation name on the the OSC display and MCU display if appropriate
-        oscwidget = THIS_PREFIX + (std::string) "_" + Row.WidgetID + "_active_" + std::to_string(x);
-        if (widgetExists(oscwidget))
-        {
-            setWidgetCaption(oscwidget, variationname);
-            setWidgetValue(oscwidget, x == current ? 0.0 : 1.0);  // we force a toggle to force OSC to update the Caption.  GP doesn't send an OSC update if WidgetValue stays the same.
-            setWidgetValue(oscwidget, x == current ? 1.0 : 0.0);
-        }
     }
 }
 
@@ -194,7 +159,7 @@ void LibMain::DisplayRacks(SurfaceRow Row, bool forcetocurrent)
             selected = 0;
         }
 
-        Controller.Instance[1].SoftbuttonArray.set(x,rackname);
+        Controller.Instance[1].SoftbuttonArray.setLabel(x,rackname);
         // refreshTimer.softbuttonarray.set(x, formatSoftbuttonText(rackname));
 
         if (selected == 1) { DisplayWidgetValue(Row, x, BUTTON_LIT); }
@@ -229,6 +194,7 @@ void LibMain::DisplayRow(SurfaceRow Row, bool forcetocurrent)
         }
         else { DisplaySoftbuttons(Row); }
         DisplayButton(SID_FADERBANK_FLIP, Controller.Instance[1].ShowRacksSongs ? 127 : 0);
+        QueueMidi(Controller.Instance[1].Softsend()); // send the required row names  MRWedit
     }
     // else if (Row.Showing == SHOW_SONGPARTS) { DisplaySongParts(Row, forcetocurrent); }
     // else if (Row.Showing == SHOW_VARIATIONS) { DisplayVariations(Row, -1); }

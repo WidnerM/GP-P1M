@@ -256,11 +256,11 @@ class P1SoftbuttonArray
 public:
 	P1Softbutton Buttons[80];
 	P1Softbutton LastButtons[80];
-	bool Dirty = true;
+	bool Dirty[20];
 
 	// set an array element text and forat it appropriately
-	bool set(uint8_t position, std::string text);
-	bool set(uint8_t position, P1Softbutton button);
+	bool setLabel(uint8_t position, std::string text);
+	bool setLabel(uint8_t position, P1Softbutton button);
 
 	void Initialize()
 	{
@@ -270,7 +270,11 @@ public:
 		{
 			label = "Soft " + std::to_string(x + 1);
 
-			set(x, label);
+			setLabel(x, label);
+			if (x < std::size(Dirty))
+			{
+				Dirty[x] = true; // mark the array as dirty so we send it out
+			}
 		}
 	}
 };
@@ -296,6 +300,7 @@ public:
 	int P1MColorbars[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 	// uint8_t TextDisplay = SHOW_FADERS; // eliminated this for P1-M
+	int nothingtoseehere = 0;
 	int FirstShownSong = 0;
 	int FirstShownRack = 0;
 	uint8_t CommandButtons[10] = ICON_P1M_COMMAND_BUTTONS;
@@ -391,6 +396,16 @@ public:
 		return (rownum >= 0 && rownum < std::size(Row));
 	}
 
+	bool ClearColorBars()
+	{
+		// clear the color bars
+		for (int x = 0; x < 8; x++)
+		{
+			P1MColorbars[x] = 0;
+		}
+		return true;
+	}
+
 	// P1M color bars - we have to send them all at once in one sysex
 	gigperformer::sdk::GPMidiMessage DisplayP1MColorbars()
 	{
@@ -426,7 +441,7 @@ public:
 		}
 	}
 
-	void setFirstShownSong(int current, int rackcount, bool forcetocurrent = false)
+	void setFirstShownSong(int current, int songcount, bool forcetocurrent = false)
 	{
 		// Get FirstShownSong set correctly for what we're going to show at leftmost position
 		if (forcetocurrent == true)
@@ -435,12 +450,12 @@ public:
 		}
 		else
 		{
-			if (FirstShownSong >= rackcount)
+			if (FirstShownSong >= songcount)
 			{
 				FirstShownSong = 0;  // firstshown is zero based, count can be 0 only if there are no racks
 			}
 			if (FirstShownSong < 0) {
-				FirstShownSong = rackcount - rackcount % ShowSongCount;
+				FirstShownSong = songcount - songcount % ShowSongCount;
 			}
 		}
 	}
@@ -450,74 +465,58 @@ public:
 	std::string Softsend()
 
 	{
-		std::string pagesysex, sysex="";
+		std::string pagesysex, sysex;
 		uint8_t lines, loop, position;
 		bool touched, linetouched;  // to reduce data volume we only send data if the sysex string it belongs to changed
 
 		// if nothing has changed we don't send anything
-		if (SoftbuttonArray.Dirty == true)
+		touched = false;
+		sysex = "";
+
+		// loop through each of the long sysex lines
+		for (lines = 0; lines < (80 / P1M_NAMES_PER_PAGE) -1 ; lines++)
 		{
-			SoftbuttonArray.Dirty = false;
-			touched = false;
-			for (lines = 0; lines < (80 / P1M_NAMES_PER_PAGE); lines++)
+			if (SoftbuttonArray.Dirty[lines]) // it's been touched, so we will produce and send it
 			{
-				// hexsysex = P1M_NAME_START;
-				// hexsysex = hexsysex.replace(P1M_NAME_PAGE * 3, 2, std::format("{:02x}", lines + 1)); // which chunk we're on
+				SoftbuttonArray.Dirty[lines] = false; // reset the dirty flag for this line
+				touched = true; // we have something to send
+
 				pagesysex = gigperformer::sdk::GPUtils::hex2binaryString(P1M_NAME_START);
 				pagesysex[P1M_NAME_PAGE] = (uint8_t)(lines + 1); // replace page we're on
-				linetouched = false;
 
+				// loop through the number of softbuttons per page
 				for (loop = 0; loop < P1M_NAMES_PER_PAGE; loop++)
 				{
 					position = loop + lines * P1M_NAMES_PER_PAGE;
-					if (SoftbuttonArray.Buttons[position].Label != SoftbuttonArray.LastButtons[position].Label)
-					{
-						linetouched = true;
-						touched = true;
-						SoftbuttonArray.LastButtons[position].Label = SoftbuttonArray.Buttons[position].Label;
-					}
-					//hexsysex = std::format(" {:02x} ", SoftbuttonArray.Buttons[position].Format);
 					pagesysex.push_back(SoftbuttonArray.Buttons[position].Format);
 					pagesysex += SoftbuttonArray.Buttons[position].Label;
 				}
 				pagesysex.push_back((uint8_t)0xf7);
-
-
-				// only send the sysex for the line if it was touched, or some line was touched and it's the final line
-				if (linetouched || (lines > 6 && touched)) {
-					// scriptLog(hexsysex, 0);
-					// sendPort4Message(gigperformer::sdk::GPUtils::hex2binaryString(hexsysex));
-					sysex += pagesysex;
-				}
-				// else scriptLog("P1M: line " + std::to_string(lines) + " skipped", 0);
+				sysex += pagesysex;
 			}
-			// return gigperformer::sdk::GPMidiMessage::makeSysexMessage(sysex);
+
+		}
+
+		// if one of the first lines was touched, we need to send the last line
+		if (touched) {
+			pagesysex = gigperformer::sdk::GPUtils::hex2binaryString(P1M_NAME_START);
+			pagesysex[P1M_NAME_PAGE] = (uint8_t)(lines + 1); // replace page we're on
+
+			// loop through the number of softbuttons per page
+			for (loop = 0; loop < P1M_NAMES_PER_PAGE; loop++)
+			{
+				position = loop + lines * P1M_NAMES_PER_PAGE;
+				pagesysex.push_back(SoftbuttonArray.Buttons[position].Format);
+				pagesysex += SoftbuttonArray.Buttons[position].Label;
+			}
+			pagesysex.push_back((uint8_t)0xf7);
+			sysex += pagesysex;
+
 			return sysex;
 		}
-		else return (std::string)""; // gigperformer::sdk::GPMidiMessage(); // return an empty message if nothing has changed
+		else return ""; // return empty string if nothing was touched
 	}
 
-	//gigperformer::sdk::GPMidiMessage PresetShortname(uint8_t position, std::string shortname)
-	//{
-	//	gigperformer::sdk::GPMidiMessage midimessage;
-
-	//	std::string cleantext = cleanSysex(shortname) + (std::string)"                                                "; // make sure it cover the full length
-
-	//	midimessage = gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(SysexPrefix)
-	//		+ cleantext.substr(0, ShortNameLen) + gigperformer::sdk::GPUtils::hex2binaryString("00f7")); // append the csum placeholder + sysex end marker f7
-
-	//	// set opcodes
-	//	midimessage.setValue((uint8_t)2, (uint8_t)2);
-	//	midimessage.setValue((uint8_t)2, (uint8_t)position);
-	//	midimessage.setValue((uint8_t)2, (uint8_t)0);
-	//	midimessage.setValue((uint8_t)2, (uint8_t)0);
-
-	//	// calculate and place checksum
-	//	midimessage.setValue(midimessage.length() - 2,
-	//		(uint8_t)calculateChecksum(midimessage.length(), midimessage.asBytes()));
-	//	return midimessage;
-
-	//}
 };
 
 class SrfcArray
