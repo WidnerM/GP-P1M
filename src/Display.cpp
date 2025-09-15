@@ -42,7 +42,7 @@ void LibMain::ClearMCUDisplay(uint8_t row)
 
 void LibMain::CleanMCU()
 {
-    int x;
+    int x, y;
 
     // clear display
     ClearMCUDisplay(0);
@@ -58,6 +58,15 @@ void LibMain::CleanMCU()
     // clear the knobs
     for (x = 0; x <= 7; x++) {
         sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeControlChangeMessage(0x30 + x, 0, 0 ));
+    }
+
+    // clear the softbuttons
+    for (x = 0; x < Controller.Instance[1].SoftbuttonsPerPage; x++) {
+        for (y = 1; y <= 3; y++)
+        {
+            sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(
+                Controller.Instance[1].Row[SOFTBUTTON_ROW].FirstID + x, 0, y));
+        }
     }
 
     // clear the VU meters on real MCUs
@@ -161,9 +170,15 @@ void LibMain::DisplayWidgetValue(SurfaceRow Row, uint8_t column, double value)
 
     MidiMessage[0] = Row.MidiCommand;
 
-    if (Row.Type == BUTTON_TYPE || Row.Type == SOFTBUTTON_TYPE)
+    if (Row.Type == BUTTON_TYPE)
     {
         MidiMessage[1] = Row.FirstID + column;
+        MidiMessage[2] = (value != 0) ? BUTTON_LIT : BUTTON_OFF;
+    }
+    else if (Row.Type == SOFTBUTTON_TYPE)
+    {
+		MidiMessage[0] += 1 + column / 16;  // softbuttons run on channels 0-15 for buttons 0-15, then 16-31, etc.
+        MidiMessage[1] = Row.FirstID + column % 16;
         MidiMessage[2] = (value != 0) ? BUTTON_LIT : BUTTON_OFF;
     }
     else if (Row.Type == FADER_TYPE)
@@ -241,10 +256,13 @@ void LibMain::DisplayFaders(SurfaceRow Row)
 			Controller.Instance[1].ClearColorBars();
             sendMidiMessageToMidiOutDevice(Controller.Instance[1].OutPort, Controller.Instance[1].DisplayP1MColorbars());
         }
-        else for (x = 0; x < Row.Columns; x++)
+        else for (x = 0; x < (Row.Columns * 3 /5); x++) // don't need to do the U1 & U2 pages because they don't work
         {
-            DisplayWidgetValue(Row, (uint8_t)x, 0);
-            Controller.Instance[1].SoftbuttonArray.setLabel(x, "-");
+            if (!Controller.Instance[1].ShowRacksSongs || x > 2 * Controller.Instance[1].SoftbuttonsPerPage)
+            {
+                DisplayWidgetValue(Row, (uint8_t)x, 0);
+                Controller.Instance[1].SoftbuttonArray.setLabel(x, "-");
+            }
         }
     }
     else
@@ -283,15 +301,21 @@ void LibMain::DisplayFaders(SurfaceRow Row)
             }
 
             if (Controller.Instance[1].P1MType) {
-                DisplayWidgetValue(Row, (uint8_t)x, Value); // move fader or show knob position
                 if (Row.Type == FADER_TYPE || Row.Type == KNOB_TYPE) {
+                    DisplayWidgetValue(Row, (uint8_t)x, Value); // move fader or show knob position
                     DisplayText(x, Row.Type == FADER_TYPE ? 3 : 0, Label, 7);
                     DisplayText(x, Row.Type == FADER_TYPE ? 2 : 1, TextValue, 7);
                 }
-                else if (Row.Type == SOFTBUTTON_TYPE)
+                else if ((Row.Type == SOFTBUTTON_TYPE) && (x < Row.Columns * 3/5) )
                 {
-                    // Controller.Instance[1].SoftbuttonArray.set(x, formatSoftbuttonText(Label));
-                    Controller.Instance[1].SoftbuttonArray.setLabel(x, Label);
+                    if (x < 2 * Controller.Instance[1].SoftbuttonsPerPage && Controller.Instance[1].ShowRacksSongs) {
+                        // Controller.Instance[1].SoftbuttonArray.set(x + (Controller.Instance[1].FirstShownSong * 2), formatSoftbuttonText(Label));
+					}
+                    else
+                    {
+                        DisplayWidgetValue(Row, (uint8_t)x, Value); // set softbutton
+                        Controller.Instance[1].SoftbuttonArray.setLabel(x, Label);
+                    }
                 }
             }
 

@@ -110,7 +110,8 @@ public:
 
 
     // from Inputs.cpp
-    void ProcessButton(uint8_t button, uint8_t value);
+    void ProcessButton(uint8_t channel, uint8_t button, uint8_t value);
+    void ProcessSoftButton(uint8_t channel, uint8_t button, uint8_t value);
     void ToggleButton(SurfaceRow Row, uint8_t button);
 
 
@@ -245,21 +246,6 @@ public:
         // scriptLog("MC: Shutting down.", 1);
         InitializeMCU();  // clear buttons, display, and VCUs
 
-        // Clear all the OSC displays so we don't have stray junk left behind or on next Gig load
-        for (row = 0; row < std::size(Controller.Instance[1].Row); row++)
-        {
-            for (column = 0; column < Controller.Instance[1].Row[row].Columns; column++)
-            {
-                widgetname = Controller.Instance[1].Row[row].WidgetPrefix + "_active_" + std::to_string(column);
-                if (widgetExists(widgetname))
-                {
-                    setWidgetCaption(widgetname, "");
-                    if (getWidgetValue(widgetname) == 0) { setWidgetValue(widgetname, 0.1); }
-                    setWidgetValue(widgetname, 0);
-                }
-            }
-        }
-
 		QueueMidi(Controller.Instance[1].Softsend()); // send any queued softbutton messages before we close 
     }
 
@@ -323,7 +309,7 @@ public:
                 }
             }
         }
-        else if (widgetName == SHOWRACKS_WIDGETNAME)
+        /* else if (widgetName == SHOWRACKS_WIDGETNAME)
         {
             Controller.Instance[1].ShowRackCount = std::min(std::stoi("0" + getWidgetCaption(widgetName)), 16);
             Controller.Instance[1].ShowVariationCount = 16 - Controller.Instance[1].ShowRackCount;
@@ -332,7 +318,7 @@ public:
         {
             Controller.Instance[1].ShowSongCount = std::min(std::stoi("0" + getWidgetCaption(widgetName)), 16);
             Controller.Instance[1].ShowSongpartCount = 16 - Controller.Instance[1].ShowSongCount;
-        }
+        } */
 
     }
 
@@ -371,11 +357,14 @@ public:
 
                 if (widget.IsSurfaceItemWidget)
                 {
+					// if it's the active bank AND (it's either not a softbutton OR it is a softbutton but we're not showing racks/songs)
                     if (widget.BankID == Controller.Instance[1].Row[widget.RowNumber].ActiveBankID() && 
-                        (Controller.Instance[1].Row[widget.RowNumber].Type != SOFTBUTTON_TYPE || !Controller.Instance[1].ShowRacksSongs) )
+						(!widget.IsSoftbutton() ||
+                            (widget.IsSoftbutton() && ((widget.Column > 2 * Controller.Instance[1].SoftbuttonsPerPage) ||
+								!Controller.Instance[1].ShowRacksSongs))))
                     {
 //                        setWidgetValue(Controller.Instance[1].Row[widget.RowNumber].WidgetPrefix + "_active_" + widget.Column, newValue);
-                        setWidgetValue( widget.SurfacePrefix + "_" + widget.WidgetID + "_active_" + std::to_string(widget.Column), newValue);
+                        // setWidgetValue( widget.SurfacePrefix + "_" + widget.WidgetID + "_active_" + std::to_string(widget.Column), newValue);
                         DisplayWidgetValue(Controller.Instance[1].Row[widget.RowNumber], widget.Column, newValue);
                         if (widget.WidgetID == FADER_TAG) { DisplayText(widget.Column, 2, widget.TextValue, 7); }
                         if (widget.WidgetID == KNOB_TAG) { DisplayText(widget.Column, 1, widget.TextValue, 7); }
@@ -425,7 +414,7 @@ public:
                 ProcessKnob(data[1] - KNOB_0, data[2]);  // pass the knob position (0-7) and the value (relative pos is usually 1 or 127)
             }
             else if (IsButton(data, length)) {
-                ProcessButton(data[1], data[2]);  // it's a button press
+                ProcessButton(data[0] & 0x0f, data[1], data[2]);  // it's a button press
             }
             else if (IsFader(data, length)) {
                 ProcessFader(data[0], data[1], data[2]);
@@ -456,7 +445,7 @@ public:
         // scriptLog("MC: Song changed to number " + std::to_string(newIndex), 0);
         // scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
         
-        if (Controller.Instance[1].Row[Controller.Instance[1].RackRow].Showing == SHOW_SONGS)
+        if (Controller.Instance[1].ShowRacksSongs)
         {
             DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], true);
         }
@@ -501,12 +490,12 @@ public:
         // scriptLog("MC: getCurrentSongIndex = " + std::to_string(getCurrentSongIndex()), 1);
 
         // DisplayTopLeft(0, "");
-        
-        if (Controller.Instance[1].RackRow < Controller.Instance[1].ButtonRows)
-        {
-            Controller.Instance[1].Row[Controller.Instance[1].RackRow].Showing = (mode == 1) ? SHOW_SONGS : SHOW_RACKSPACES;
-            DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], true);
-        }
+        // 
+        // set the record button to on if we're in setlist mode
+        sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Controller.Instance[1].CommandButtons[SETLIST_TOGGLE], (mode == 1) ? BUTTON_LIT : BUTTON_OFF, 0));
+
+        Controller.Instance[1].Row[Controller.Instance[1].RackRow].Showing = ((mode == 1) ? SHOW_SONGS : SHOW_RACKSPACES);
+        DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], true);
 
         //if (Controller.Instance[1].VarRow < Controller.Instance[1].ButtonRows)
         //{
@@ -515,7 +504,6 @@ public:
         //}
 
         // Light or turn off the SID_MIXER button to indicate if we're in Setlist mode (mode==1) or rackspace mode
-        sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeNoteOnMessage(Controller.Instance[1].CommandButtons[SETLIST_TOGGLE], (mode == 1) ? BUTTON_LIT : BUTTON_OFF, 0));
     }
 
     // examine a vector of widgets and structure the Surface structure to reflect widgets in the rackspace or global rackspace
@@ -533,7 +521,7 @@ public:
             // scriptLog("bS sees widget " + widgetname, 1);
 
             // SHOWRACKS_WIDGETNAME caption sets how many Rackspaces to show on softbuttons (rest will show variations)
-            if (widgetname == SHOWRACKS_WIDGETNAME)
+            /* if (widgetname == SHOWRACKS_WIDGETNAME)
             {
                 Controller.Instance[1].ShowRackCount = std::min(std::stoi("0" + getWidgetCaption(widgetname)),16);
                 Controller.Instance[1].ShowVariationCount = 16 - Controller.Instance[1].ShowRackCount;
@@ -544,7 +532,8 @@ public:
                 Controller.Instance[1].ShowSongCount = std::min(std::stoi("0" + getWidgetCaption(widgetname)), 16);
                 Controller.Instance[1].ShowSongpartCount = 16 - Controller.Instance[1].ShowSongCount;
             }
-            else if (widgetname == LAYOUT_WIDGETNAME)
+            else */
+            if (widgetname == LAYOUT_WIDGETNAME)
             { 
                 listenForWidget(LAYOUT_WIDGETNAME, true);
             }
@@ -635,7 +624,7 @@ public:
             // scriptLog("Set active bank for row " + std::to_string(row) + " to " + std::to_string(Controller.Instance[1].Row[row].ActiveBank), 1);
             if (row == Controller.Instance[1].RackRow) // if we're showing Racks/Songs on this row, just do that
             {
-                DisplayRow(Controller.Instance[1].Row[row], true);
+                if (!inSetlistMode()) DisplayRow(Controller.Instance[1].Row[row], true);  // don't display if in setlist mode
             }
             else
             {
@@ -688,6 +677,9 @@ public:
 
         // DisplayModeButtons();
 
+        // FIX THIS>>> on a song change we end up sending the softbutton row four times, which causes sysex overflow
+        // to the P1-M.  Probably could separate the lighting of the softbuttons from the updating of the songs/racks to reduce
+        // how many times we update the softbutton text.
         DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], true);
     }
 

@@ -1,8 +1,8 @@
 // For classes and such for MCU controllers
 
-#define MCU_IN        "Platform M+ V2.15"
+#define MCU_IN        "^iCON.*P1-M.*"
 #define MIDI_IN_WIDGETNAME "mc_midiin"
-#define MCU_OUT       "Platform M+ V2.15"
+#define MCU_OUT       "^iCON.*P1-M.*"
 #define MIDI_OUT_WIDGETNAME "mc_midiout"
 #define LAYOUT_WIDGETNAME "mc_layout"
 #define RACKROW_WIDGETNAME "mc_rackrow"

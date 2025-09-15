@@ -5,161 +5,175 @@
 #include <sstream>
 #include "LibMain.h"
 
+void LibMain::ProcessSoftButton(uint8_t channel, uint8_t button, uint8_t value)  // processes a softbutton
+{
+    uint8_t songnumber;
+
+    // we're putting Rackspaces/Songs on the U1 page and Variations/Songparts on the U2 page if in ShowRacksSongs mode (flip button)
+    if (Controller.Instance[1].ShowRacksSongs)
+    {
+        songnumber = (button - Controller.Instance[1].Row[SOFTBUTTON_ROW].FirstID);
+
+        if (channel == 1) // Songs and Racks on page (channel) one
+        {
+            if (inSetlistMode() == 1) {
+                if ((songnumber + Controller.Instance[1].FirstShownSong) < getSongCount())
+                {
+                    Controller.Instance[1].reportWidgetChanges = false;
+                    switchToSong(songnumber + Controller.Instance[1].FirstShownSong, 0);
+                    Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
+                }
+                return;
+            }
+            else
+            {
+                if ((songnumber + Controller.Instance[1].FirstShownRack) < getRackspaceCount())
+                {
+                    Controller.Instance[1].reportWidgetChanges = false;
+                    switchToRackspaceName(getRackspaceName(songnumber + Controller.Instance[1].FirstShownRack));
+                    Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
+                }
+                return;
+            }
+        }
+        else if (channel == 2) // Variations and Songparts on page (channel) two
+        {
+            if (inSetlistMode() == 1) {
+                if (songnumber < getSongpartCount(getCurrentSongIndex()))
+                {
+                    Controller.Instance[1].reportWidgetChanges = false;
+                    switchToSongPart(songnumber);
+                    Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
+                }
+                return;
+            }
+            else
+            {
+                if (songnumber < getVariationCount(getCurrentRackspaceIndex()))
+                {
+                    Controller.Instance[1].reportWidgetChanges = false;
+                    switchToVariation(songnumber);
+                    Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
+                }
+                return;
+            }
+        }
+    }
+    
+    // if we get here we just toggle the button
+    // our button column number is channel * 16 + (button - firstID)
+    ToggleButton(Controller.Instance[1].Row[SOFTBUTTON_ROW],
+        (button - Controller.Instance[1].Row[SOFTBUTTON_ROW].FirstID) + (channel-1) * 16);
+}
 
 // process button inputs from the control surface
-void LibMain::ProcessButton(uint8_t button, uint8_t value)  // processes a midi button press
+void LibMain::ProcessButton(uint8_t channel, uint8_t button, uint8_t value)  // processes a midi button press
 {
     uint8_t x, songnumber;
     std::string labelwidget;
 
-    if (value == 127) {  // only process button downs
-        if (button == Controller.Instance[1].CommandButtons[FADERS_BANK_UP])  // next Fader bank
+    if (value == 127)
+    {
+        if (channel > 0) ProcessSoftButton(channel, button, value); // softbuttons are on channels 1-5
+        else
         {
-            if (Controller.Instance[1].Row[FADER_ROW].IncrementBank())
+            if (button == Controller.Instance[1].CommandButtons[FADERS_BANK_UP])  // next Fader bank
             {
-                SyncBankIDs(FADER_ROW);
-            }
-            // DisplayFaders(Controller.Instance[1].Row[FADER_ROW]);
-        }
-        else if (button == Controller.Instance[1].CommandButtons[FADERS_BANK_DOWN])  // prior Fader bank
-        {
-            if (Controller.Instance[1].Row[FADER_ROW].DecrementBank())
-            {
-                SyncBankIDs(FADER_ROW);
-            }
-        }
-        else if (button == Controller.Instance[1].CommandButtons[KNOBS_BANK_UP])  // next Knob bank
-        {
-            if (Controller.Instance[1].Row[KNOB_ROW].IncrementBank())
-            {
-                SyncBankIDs(KNOB_ROW);
-            }
-        }
-        else if (button == Controller.Instance[1].CommandButtons[KNOBS_BANK_DOWN])  // prior Knob bank
-        {
-            if (Controller.Instance[1].Row[KNOB_ROW].DecrementBank())
-            {
-                SyncBankIDs(KNOB_ROW);
-            }
-        }
-        else if (button == Controller.Instance[1].CommandButtons[SONGS_BANK_UP])   // next song/rack/softbutton bank
-        {
-            if (Controller.Instance[1].ShowRacksSongs)
-            {
-                if (inSetlistMode() == 1) { Controller.Instance[1].FirstShownSong += Controller.Instance[1].ShowSongCount; }
-                else { Controller.Instance[1].FirstShownRack += Controller.Instance[1].ShowRackCount; }
-                DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], false);
-            }
-            else
-            {
-                if (Controller.Instance[1].Row[SOFTBUTTON_ROW].IncrementBank())
+                if (Controller.Instance[1].Row[FADER_ROW].IncrementBank())
                 {
-                    SyncBankIDs(SOFTBUTTON_ROW);  // this will call DisplayRow() itself, so don't need to call again
-				}
+                    SyncBankIDs(FADER_ROW);
+                }
+                // DisplayFaders(Controller.Instance[1].Row[FADER_ROW]);
             }
-        }
-        else if (button == Controller.Instance[1].CommandButtons[SONGS_BANK_DOWN])  // prior Song/rack/softbutton bank
-        {
-            if (Controller.Instance[1].ShowRacksSongs)
+            else if (button == Controller.Instance[1].CommandButtons[FADERS_BANK_DOWN])  // prior Fader bank
             {
-                if (inSetlistMode() == 1) { Controller.Instance[1].FirstShownSong -= Controller.Instance[1].ShowSongCount; }
-                else { Controller.Instance[1].FirstShownRack -= Controller.Instance[1].ShowRackCount; }
-                DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], false);
-            }
-            else
-            {
-                if (Controller.Instance[1].Row[SOFTBUTTON_ROW].DecrementBank())
+                if (Controller.Instance[1].Row[FADER_ROW].DecrementBank())
                 {
-                    SyncBankIDs(SOFTBUTTON_ROW);  // this will call DisplayRow() itself, so don't need to call again
+                    SyncBankIDs(FADER_ROW);
                 }
             }
-        }
-        else if (button == Controller.Instance[1].CommandButtons[SETLIST_TOGGLE])  // Toggle between in and out of Setlist mode
-        {
-            Controller.Instance[1].reportWidgetChanges = false;
-            inSetlistMode() ? switchToPanelView() : switchToSetlistView();
-            Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
-        }
-        else if (button == SID_TRANSPORT_PLAY) // 
-        {
-            setPlayheadState(true);
-        }
-        else if (button == SID_TRANSPORT_STOP) // 
-        {
-            setPlayheadState(false);
-        }
-        else if (button == SID_FADERBANK_FLIP) // toggle between songs/racks and softbuttons
-        {
-            Controller.Instance[1].ShowRacksSongs = !Controller.Instance[1].ShowRacksSongs;
-            DisplayButton(SID_FADERBANK_FLIP, Controller.Instance[1].ShowRacksSongs ? 127 : 0);
-            DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], true);
-        }
-        else for (x = 0; x < Controller.Instance[1].ButtonRows ; x++)  // cycle through our button rows until we find the one it's in
-        {
-            if ((button >= Controller.Instance[1].Row[x].FirstID) && (button < Controller.Instance[1].Row[x].FirstID + Controller.Instance[1].Row[x].Columns) )
+            else if (button == Controller.Instance[1].CommandButtons[KNOBS_BANK_UP])  // next Knob bank
             {
-                // if it's the softbutton row we process it as song/rack/songpart/variation select, otherwise it drops thru as softbutton toggle
-                if (Controller.Instance[1].Row[x].Type == SOFTBUTTON_TYPE && Controller.Instance[1].ShowRacksSongs)
+                if (Controller.Instance[1].Row[KNOB_ROW].IncrementBank())
                 {
-                    if (Controller.Instance[1].Row[x].Showing == SHOW_SONGS) // if the Row is in song select mode, process it as a song select
+                    SyncBankIDs(KNOB_ROW);
+                }
+            }
+            else if (button == Controller.Instance[1].CommandButtons[KNOBS_BANK_DOWN])  // prior Knob bank
+            {
+                if (Controller.Instance[1].Row[KNOB_ROW].DecrementBank())
+                {
+                    SyncBankIDs(KNOB_ROW);
+                }
+            }
+            else if (button == Controller.Instance[1].CommandButtons[SONGS_BANK_UP])   // next song/rack/softbutton bank
+            {
+				if (Controller.Instance[1].ShowRacksSongs) // disable this for now - putting songs/rack on U1 always
+                {
+                    if (inSetlistMode() == 1) { Controller.Instance[1].FirstShownSong += Controller.Instance[1].ShowSongCount; }
+                    else { Controller.Instance[1].FirstShownRack += Controller.Instance[1].ShowRackCount; }
+                    DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], false);
+                }
+                else
+                {
+                    if (Controller.Instance[1].Row[SOFTBUTTON_ROW].IncrementBank())
                     {
-                        songnumber = button - Controller.Instance[1].Row[x].FirstID; // the column number of the button
-                        if (songnumber < Controller.Instance[1].ShowSongCount)
-                        {
-                            if ((songnumber + Controller.Instance[1].FirstShownSong) < getSongCount())
-                            {
-                                Controller.Instance[1].reportWidgetChanges = false;
-                                switchToSong(songnumber + Controller.Instance[1].FirstShownSong, 0);
-                                Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
-                                return;
-                            }
-                        }
-                        else
-                        {
-                            uint8_t songpartnumber = songnumber - Controller.Instance[1].ShowSongCount; // 
-                            if (songpartnumber < getSongpartCount(getCurrentSongIndex()))
-                            {
-                                Controller.Instance[1].reportWidgetChanges = false;
-                                switchToSongPart(songpartnumber);
-                                Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
-                                return;
-                            }
-                        }
-                    }
-                    else if (Controller.Instance[1].Row[x].Showing == SHOW_RACKSPACES) // if the Row is in Rackspace mode, process it as a Rackspace select
-                    {
-                        songnumber = button - Controller.Instance[1].Row[x].FirstID; // the column number of the button
-                        if (songnumber < Controller.Instance[1].ShowRackCount)
-                        {
-                            if ((songnumber + Controller.Instance[1].FirstShownRack) < getRackspaceCount())
-                            {
-                                Controller.Instance[1].reportWidgetChanges = false;
-                                switchToRackspaceName(getRackspaceName(songnumber + Controller.Instance[1].FirstShownRack));
-                                Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
-                                return;
-                            }
-                        }
-                        else
-                        {
-                            uint8_t songpartnumber = songnumber - Controller.Instance[1].ShowRackCount; // 
-                            if (songpartnumber < getVariationCount(getCurrentRackspaceIndex()))
-                            {
-                                Controller.Instance[1].reportWidgetChanges = false;
-                                switchToVariation(songpartnumber);
-                                Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
-                                return;
-                            }
-                        }
+                        SyncBankIDs(SOFTBUTTON_ROW);  // this will call DisplayRow() itself, so don't need to call again
                     }
                 }
-                if (Controller.Instance[1].Row[x].Type == SOFTBUTTON_TYPE)
+            }
+            else if (button == Controller.Instance[1].CommandButtons[SONGS_BANK_DOWN])  // prior Song/rack/softbutton bank
+            {
+				if (Controller.Instance[1].ShowRacksSongs) // disable this for now - putting songs/rack on U1 always
                 {
-                    ToggleButton(Controller.Instance[1].Row[x], button - Controller.Instance[1].Row[x].FirstID);
+                    if (inSetlistMode() == 1) { Controller.Instance[1].FirstShownSong -= Controller.Instance[1].ShowSongCount; }
+                    else { Controller.Instance[1].FirstShownRack -= Controller.Instance[1].ShowRackCount; }
+                    DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], false);
                 }
-                else if (Controller.Instance[1].Row[x].BankValid()) // make sure ActiveBank is a valid bank to avoid exceptions
+                else
                 {
-                    ToggleButton(Controller.Instance[1].Row[x], button - Controller.Instance[1].Row[x].FirstID);
-                    // ShowButton(Controller.Instance[1].Row[x], button - Controller.Instance[1].Row[x].FirstID);
+                    if (Controller.Instance[1].Row[SOFTBUTTON_ROW].DecrementBank())
+                    {
+                        SyncBankIDs(SOFTBUTTON_ROW);  // this will call DisplayRow() itself, so don't need to call again
+                    }
+                }
+            }
+            else if (button == Controller.Instance[1].CommandButtons[SETLIST_TOGGLE])  // Toggle between in and out of Setlist mode
+            {
+                Controller.Instance[1].reportWidgetChanges = false;
+                inSetlistMode() ? switchToPanelView() : switchToSetlistView();
+                Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
+            }
+            else if (button == SID_TRANSPORT_PLAY) // 
+            {
+                setPlayheadState(true);
+            }
+            else if (button == SID_TRANSPORT_STOP) // 
+            {
+                setPlayheadState(false);
+            }
+            else if (button == SID_FADERBANK_FLIP) // toggle between songs/racks and softbuttons - disabling for now
+            {
+                Controller.Instance[1].ShowRacksSongs = !Controller.Instance[1].ShowRacksSongs;
+                DisplayButton(SID_FADERBANK_FLIP, Controller.Instance[1].ShowRacksSongs ? 127 : 0);
+                DisplayRow(Controller.Instance[1].Row[Controller.Instance[1].RackRow], true);
+            }
+
+            // it's not one of the special buttons, so cycle through our button rows until we find the one it's in
+            // softbuttons are handled differently because they can be in song/rack select mode
+            else for (x = 0; x < Controller.Instance[1].ButtonRows; x++)
+            {
+                if ((button >= Controller.Instance[1].Row[x].FirstID) && (button < Controller.Instance[1].Row[x].LastID) )
+                {
+                    if (Controller.Instance[1].Row[x].Type == SOFTBUTTON_TYPE)
+                    {
+                        ProcessSoftButton(channel, button, value);
+                    }
+                    else if (Controller.Instance[1].Row[x].BankValid()) // make sure ActiveBank is a valid bank to avoid exceptions
+                    {
+                        ToggleButton(Controller.Instance[1].Row[x], button - Controller.Instance[1].Row[x].FirstID);
+                        // ShowButton(Controller.Instance[1].Row[x], button - Controller.Instance[1].Row[x].FirstID);
+                    }
                 }
             }
         }
@@ -280,5 +294,5 @@ bool LibMain::IsFader(const uint8_t* data, int length)  // Is midi event from a 
 
 bool LibMain::IsButton(const uint8_t* data, int length)   // Is midi event from a button?
 {
-    return( (data[0] == 0x90) || (data[0] == 0x80) ); // any note on, channel 1
+    return( ((data[0] & 0xf0) == 0x90) || ((data[0] & 0xf0) == 0x80) ); // any note on/off, any channel
 }

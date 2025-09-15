@@ -115,6 +115,8 @@ public:
 
 	bool IsKnob();
 
+	bool IsSoftbutton();
+
 };
 
 class SurfaceRow
@@ -132,6 +134,7 @@ public:
 	uint8_t Columns = 8;
 	uint8_t MidiCommand = 0x90;
 	uint8_t FirstID = 0;
+	uint8_t LastID = 0;
 
 	bool BankValid()
 	{
@@ -254,9 +257,9 @@ public:
 class P1SoftbuttonArray
 {
 public:
-	P1Softbutton Buttons[80];
-	P1Softbutton LastButtons[80];
-	bool Dirty[20];
+	P1Softbutton Buttons[120];
+	P1Softbutton LastButtons[120];
+	bool Dirty[120];
 
 	// set an array element text and forat it appropriately
 	bool setLabel(uint8_t position, std::string text);
@@ -266,7 +269,7 @@ public:
 	{
 		std::string label;
 
-		for (int x = 0; x < 80; x++)
+		for (int x = 0; x < 120; x++)
 		{
 			label = "Soft " + std::to_string(x + 1);
 
@@ -300,18 +303,18 @@ public:
 	int P1MColorbars[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 	// uint8_t TextDisplay = SHOW_FADERS; // eliminated this for P1-M
-	int nothingtoseehere = 0;
+	int SoftbuttonsPerPage = 16;
 	int FirstShownSong = 0;
 	int FirstShownRack = 0;
 	uint8_t CommandButtons[10] = ICON_P1M_COMMAND_BUTTONS;
 	uint8_t ButtonLayout = 0;
 	uint8_t RackRow = SOFTBUTTON_ROW; // always putting this on the softbutton row for P1
-	bool ShowRacksSongs = true; // whether to show racks/songs on softbuttons page 1
+	bool ShowRacksSongs = false; // whether to show racks/songs on softbuttons page U1, U2 - no longer used
 	// uint8_t VarRow = 255;
-	uint8_t ShowSongCount = 8;
-	uint8_t ShowSongpartCount = 8;
-	uint8_t ShowRackCount = 8;
-	uint8_t ShowVariationCount = 8;
+	uint8_t ShowSongCount = 16;
+	uint8_t ShowSongpartCount = 16;
+	uint8_t ShowRackCount = 16;
+	uint8_t ShowVariationCount = 16;
 
 
 	bool Initialize()
@@ -326,9 +329,11 @@ public:
 		std::string row_labels[] = ROW_LABEL_ARRAY;
 		// uint8_t show_array[] = SHOW_ARRAY;
 		uint8_t midi_commands[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0xB0, 0xE0, 0xB0 };
-		int row_columns[] = { 8, 8, 8, 8, 16, 8, 9, 8 };
+		int row_columns[] = { 8, 8, 8, 8, 120, 8, 9, 8 };
 
 		uint8_t first_midi[] = { SID_RECORD_ARM_BASE, SID_SOLO_BASE, SID_MUTE_BASE, SID_SELECT_BASE, SID_FUNCTION_BASE, SID_VPOD_PUSH_BASE, FADER_0, KNOB_0 };
+		uint8_t last_midi[] = { SID_RECORD_ARM_BASE + 7, SID_SOLO_BASE +7 , SID_MUTE_BASE +7, SID_SELECT_BASE +7, SID_FUNCTION_BASE +15, SID_VPOD_PUSH_BASE +7, FADER_0 +8, KNOB_0 +7};
+
 
 		// basic Surface structure initializations
 		for (x = 0; x < std::size(Row); x++)
@@ -339,6 +344,7 @@ public:
 			Row[x].Type = row_types[x];
 			Row[x].Columns = row_columns[x];
 			Row[x].FirstID = first_midi[x];
+			Row[x].LastID = last_midi[x];
 			Row[x].MidiCommand = midi_commands[x];
 			Row[x].Showing = SHOW_ASSIGNED; // SHOW_ASSIGNED means show normal row.  Can alternately be set to show racks, songs, etc.
 		}

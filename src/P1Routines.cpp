@@ -21,7 +21,7 @@
 std::string LibMain::SendSoftbuttonCodes(uint8_t first, uint8_t last)
 {
     std::string sysex, hexsysex;
-    uint8_t page, loop, notenum = 54, channel = 0, totalcount = 0;
+    uint8_t page, loop, notenum=0, channel = 1, totalcount = 0;
 
     // the softbutton key codes are sent to the P1-M on the first three pages of keydefs
     // then we also have to send the final page (9) or the P1-M ignores everything we sent
@@ -32,12 +32,12 @@ std::string LibMain::SendSoftbuttonCodes(uint8_t first, uint8_t last)
 
         for (loop = 0; loop < P1M_KEYDEFS_PER_PAGE; loop++)
         {
-            hexsysex += std::format(" 09 09 {:02x} {:02x} 7f 00 00 00", channel, notenum);
+            hexsysex += std::format(" 09 09 {:02x} {:02x} 7f 00 00 00", channel, notenum + Controller.Instance[1].Row[SOFTBUTTON_ROW].FirstID);
             notenum++;
-            if (notenum == 70)
+            if (notenum == 16)
             {
-                if (page == 2 && channel == 4) break; // channel 5 marks end of softkeys
-                notenum = 54;
+                if (page == 2 && channel == 5) break; // channel 5 marks end of softkeys
+                notenum = 0;
                 channel++;
             }
         }

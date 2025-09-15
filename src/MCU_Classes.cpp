@@ -19,6 +19,11 @@ bool SurfaceWidget::IsKnob()
 	return (WidgetID == KNOB_TAG);
 }
 
+bool SurfaceWidget::IsSoftbutton()
+{
+	return (WidgetID == SOFTBUTTON_TAG);
+}
+
 
 
 // basic code to format the two-line softbutton display
