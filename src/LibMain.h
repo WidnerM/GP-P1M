@@ -149,12 +149,28 @@ public:
         {
             name = getMidiInDeviceName(i);
             for (int j = 0; j < MidiIn.size(); j++) {
-                if (std::regex_match(name, std::regex(MidiIn[j]))) {
-                    listenForMidi(getMidiInDeviceName(i), 1);
-                    foundin = true;
-                    validInPorts.push_back(name);
-                    scriptLog("P1M:  Using midi in " + name, 0);
+                try
+                {
+                    if (std::regex_match(name, std::regex(MidiIn[j]))) {
+                        listenForMidi(getMidiInDeviceName(i), 1);
+                        foundin = true;
+                        validInPorts.push_back(name);
+						Controller.Instance[1].InPort = name;
+                        scriptLog("P1M:  Using midi in " + name, 0);
+                    }
                 }
+                catch (std::regex_error& e)
+                {
+                    // scriptLog("P1M:  Regex error in " + MidiIn[j] + " : " + e.what(), 1);
+
+                    if (name == MidiIn[j]) {
+                        listenForMidi(getMidiInDeviceName(i), 1);
+                        foundin = true;
+                        validInPorts.push_back(name);
+                        Controller.Instance[1].InPort = name;
+                        scriptLog("P1M:  Using midi in " + name, 0);
+                    }
+				}
             }
             if (regex_match(name, std::regex("MIDIIN4.*P1-M.*")))
             {
@@ -170,16 +186,32 @@ public:
             name = getMidiOutDeviceName(i);
             // scriptLog("Evaluating midi out " + name, 1);
             for (int j = 0; j < MidiOut.size(); j++) {
-                if (regex_match(name, std::regex(MidiOut[j])) ) { 
-                    foundout = true; 
-                    validOutPorts.push_back(name);
-                    if (regex_match(name, std::regex(P1M_REGEX)))
+                try
+                {
+                    if (std::regex_match(name, std::regex(MidiOut[j])))
                     {
-                        Controller.Instance[1].P1MType = true;
-						Controller.Instance[1].OutPort = name;
+                        foundout = true;
+                        validOutPorts.push_back(name);
+                        if (regex_match(name, std::regex(P1M_REGEX)))
+                        {
+                            Controller.Instance[1].P1MType = true;
+                            Controller.Instance[1].OutPort = name;
+                        }
+                        scriptLog("P1M:  Using midi out " + name, 0);
                     }
-                    scriptLog("P1M:  Using midi out " + name, 0);
                 }
+                catch (std::regex_error& e)
+                {
+                    // scriptLog("P1M:  Regex error in " + MidiOut[j] + " : " + e.what(), 1);
+                    if (name == MidiOut[j]) {
+                        foundout = true;
+                        validOutPorts.push_back(name);
+                        if (regex_match(name, std::regex(P1M_REGEX)))
+                        {
+                            Controller.Instance[1].P1MType = true;
+                        }
+                    }
+				}
             }
             if (regex_match(name, std::regex("MIDIOUT4.*P1-M.*")))
             {
