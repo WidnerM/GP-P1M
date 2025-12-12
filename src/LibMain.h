@@ -276,7 +276,8 @@ public:
         std::string widgetname;
 
         // scriptLog("MC: Shutting down.", 1);
-        InitializeMCU();  // clear buttons, display, and VCUs
+        // clear buttons, display, and VCUs
+        CleanMCU();
 
 		QueueMidi(Controller.Instance[1].Softsend()); // send any queued softbutton messages before we close 
     }
@@ -412,6 +413,19 @@ public:
     // A midi device was added or removed
     void OnMidiDeviceListChanged(std::vector< std::string> & inputs, std::vector< std::string> & outputs) override
     {
+        /* std::string name;
+
+        for (int i = 0; i < getMidiOutDeviceCount(); i++)
+        {
+            name = getMidiOutDeviceName(i);
+            scriptLog("GetMidiOutDeviceName " + std::to_string(i) + " : " + name, 0);
+        }
+
+        for (int i = 0; i < outputs.size(); i++)
+        {
+            scriptLog("Output device " + std::to_string(i) + " : " + outputs[i], 0);
+		} */
+
         SetMidiInOutDevices();
     }    
 
