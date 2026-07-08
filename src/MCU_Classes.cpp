@@ -24,7 +24,12 @@ bool SurfaceWidget::IsSoftbutton()
 	return (WidgetID == SOFTBUTTON_TAG);
 }
 
-
+gigperformer::sdk::GPMidiMessage SurfaceWidget::VUMidiMessage()
+{
+	gigperformer::sdk::GPMidiMessage msg = 
+		gigperformer::sdk::GPMidiMessage::makeAftertouchMessage( (Column << 4) + ((uint8_t) (Value*12) & 0x0f), 0);
+	return msg;
+}
 
 // basic code to format the two-line softbutton display
 // could improve it by deciding where to line break if > 8 characters

@@ -16,8 +16,7 @@
 // For now we are setting up the softbutton area to send note-on events 54-69 (16 button grid) on
 // each of the five softbutton pages. We put each page on its own channel number, with Blue being channel 1.
 // In the current P1-M firmware these are the only 16 contiguous buttons that can be lit-unlit that are not
-// already taken by the rest of the control surface. Unfortunately the P1-M cannot light-unlight anything
-// but channel 1.  Hopefully they will enhance this at some point.
+// already taken by the rest of the control surface.
 std::string LibMain::SendSoftbuttonCodes(uint8_t first, uint8_t last)
 {
     std::string sysex, hexsysex;

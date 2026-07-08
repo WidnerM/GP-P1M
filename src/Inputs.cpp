@@ -108,7 +108,7 @@ void LibMain::ProcessButton(uint8_t channel, uint8_t button, uint8_t value)  // 
             }
             else if (button == Controller.Instance[1].CommandButtons[SONGS_BANK_UP])   // next song/rack/softbutton bank
             {
-				if (Controller.Instance[1].ShowRacksSongs) // disable this for now - putting songs/rack on U1 always
+				if (Controller.Instance[1].ShowRacksSongs)
                 {
                     if (inSetlistMode() == 1) { Controller.Instance[1].FirstShownSong += Controller.Instance[1].ShowSongCount; }
                     else { Controller.Instance[1].FirstShownRack += Controller.Instance[1].ShowRackCount; }

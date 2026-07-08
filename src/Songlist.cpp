@@ -130,7 +130,7 @@ void LibMain::DisplayVariations(SurfaceRow Row, int current)
     }
 }
 
-//  This displays the Racks on the softbutton row
+//  This displays the Racks on the softbutton row - unused as of now
 void LibMain::DisplayRacks(SurfaceRow Row, bool forcetocurrent)
 {
     int x, rackindex, current, rackcount;
