@@ -23,7 +23,8 @@
 #define FUNCTION_PREFIX "mc_fn"
 #define VIEW_PREFIX "mc_view"
 #define SOFTBUTTON_PREFIX "mc_sb"
-#define ROW_PREFIX_ARRAY {RECORD_PREFIX, SOLO_PREFIX, MUTE_PREFIX, SELECT_PREFIX, SOFTBUTTON_PREFIX, KNOB_BUTTON_PREFIX, FADER_PREFIX, KNOB_PREFIX}
+#define VU_PREFIX "mc_vu"
+#define ROW_PREFIX_ARRAY {RECORD_PREFIX, SOLO_PREFIX, MUTE_PREFIX, SELECT_PREFIX, SOFTBUTTON_PREFIX, KNOB_BUTTON_PREFIX, FADER_PREFIX, KNOB_PREFIX, VU_PREFIX}
 // #define ROW_PREFIX_ARRAY {RECORD_PREFIX, SOLO_PREFIX, MUTE_PREFIX, SELECT_PREFIX, FUNCTION_PREFIX, VIEW_PREFIX, KNOB_BUTTON_PREFIX, FADER_PREFIX, KNOB_PREFIX}
 
 #define RECORD_ROW 0
@@ -35,6 +36,7 @@
 #define KNOB_BUTTON_ROW 5
 #define FADER_ROW 6
 #define KNOB_ROW 7
+#define VU_ROW 8
 
 #define RECORD_TAG "rec"
 #define SOLO_TAG "solo"
@@ -45,17 +47,19 @@
 #define KNOB_BUTTON_TAG "push"
 #define FUNCTION_TAG "fn"
 #define VIEW_TAG "view"
+#define VU_TAG "vu"
 #define SOFTBUTTON_TAG "sb"
 
-#define TAG_ARRAY {RECORD_TAG, SOLO_TAG, MUTE_TAG, SELECT_TAG, SOFTBUTTON_TAG, KNOB_BUTTON_TAG, FADER_TAG, KNOB_TAG}
-#define ROW_LABEL_ARRAY { "Rec", "Solo", "Mute", "Sel", "Softbutton", "KPush" , "Fader", "Knob"}
+#define TAG_ARRAY {RECORD_TAG, SOLO_TAG, MUTE_TAG, SELECT_TAG, SOFTBUTTON_TAG, KNOB_BUTTON_TAG, FADER_TAG, KNOB_TAG, VU_TAG}
+#define ROW_LABEL_ARRAY { "Rec", "Solo", "Mute", "Sel", "Softbutton", "KPush" , "Fader", "Knob", "VU"}
 
 #define BUTTON_TYPE "Button"
 #define FADER_TYPE "Fader"
 #define KNOB_TYPE "Knob"
 #define SOFTBUTTON_TYPE "Softbutton"
 #define KNOB_BUTTON_TYPE "KButton"
-#define ROW_TYPE_ARRAY {BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, SOFTBUTTON_TYPE, KNOB_BUTTON_TYPE, FADER_TYPE, KNOB_TYPE}
+#define VU_TYPE "VU"
+#define ROW_TYPE_ARRAY {BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, BUTTON_TYPE, SOFTBUTTON_TYPE, KNOB_BUTTON_TYPE, FADER_TYPE, KNOB_TYPE, VU_TYPE}
 
 
 #define SHOW_SONGS 0
@@ -116,6 +120,10 @@ public:
 	bool IsKnob();
 
 	bool IsSoftbutton();
+
+	bool IsVU();
+
+	gigperformer::sdk::GPMidiMessage VUMidiMessage();
 
 };
 
@@ -285,7 +293,7 @@ public:
 class SrfcClass
 {
 public:
-	SurfaceRow Row[8];
+	SurfaceRow Row[9];
 	uint8_t ButtonRows = 6;
 	std::string IgnoreWidget = "";
 	bool reportWidgetChanges = true; // for MCUs indicates whether we dedicate a display line to showing value of any touched widget
@@ -328,11 +336,11 @@ public:
 		std::string row_types[] = ROW_TYPE_ARRAY;
 		std::string row_labels[] = ROW_LABEL_ARRAY;
 		// uint8_t show_array[] = SHOW_ARRAY;
-		uint8_t midi_commands[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0xB0, 0xE0, 0xB0 };
-		int row_columns[] = { 8, 8, 8, 8, 120, 8, 9, 8 };
+		uint8_t midi_commands[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0xB0, 0xE0, 0xB0, 0xD0 };
+		int row_columns[] = { 8, 8, 8, 8, 120, 8, 9, 8, 8 };
 
-		uint8_t first_midi[] = { SID_RECORD_ARM_BASE, SID_SOLO_BASE, SID_MUTE_BASE, SID_SELECT_BASE, SID_FUNCTION_BASE, SID_VPOD_PUSH_BASE, FADER_0, KNOB_0 };
-		uint8_t last_midi[] = { SID_RECORD_ARM_BASE + 7, SID_SOLO_BASE +7 , SID_MUTE_BASE +7, SID_SELECT_BASE +7, SID_FUNCTION_BASE +15, SID_VPOD_PUSH_BASE +7, FADER_0 +8, KNOB_0 +7};
+		uint8_t first_midi[] = { SID_RECORD_ARM_BASE, SID_SOLO_BASE, SID_MUTE_BASE, SID_SELECT_BASE, SID_FUNCTION_BASE, SID_VPOD_PUSH_BASE, FADER_0, KNOB_0, SID_VU_BASE };
+		uint8_t last_midi[] = { SID_RECORD_ARM_BASE + 7, SID_SOLO_BASE +7 , SID_MUTE_BASE +7, SID_SELECT_BASE +7, SID_FUNCTION_BASE +15, SID_VPOD_PUSH_BASE +7, FADER_0 +8, KNOB_0 +7, SID_VU_BASE};
 
 
 		// basic Surface structure initializations

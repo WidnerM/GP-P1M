@@ -58,8 +58,8 @@ public:
 
     std::vector<std::string> MidiOut = { MCU_OUT };
     std::vector<std::string> MidiIn = { MCU_IN };
-    std::string P1Port4Out = "MIDIOUT4 (iCON P1-M V1.10 )";
-    std::string P1Port4In = "MIDIIN4 (iCON P1-M V1.10 )";
+    std::string P1Port4Out = "MIDIOUT4 (iCON P1-M)";
+    std::string P1Port4In = "MIDIIN4 (iCON P1-M)";
 
 
     // from LibMain.cpp.  We make these to simplify sending the same midi message to all destinations if we have multiple destinations
@@ -79,6 +79,7 @@ public:
     void InitializeMCU();
     void ClearMCUDisplay(uint8_t row = 0);
     void CleanMCU();
+    void ClearVUs();
     void Notify(std::string text);
     void DisplayText(uint8_t column, uint8_t row, std::string text, uint8_t maxlength);
     void DisplayTopRight(std::string text);
@@ -280,6 +281,7 @@ public:
         CleanMCU();
 
 		QueueMidi(Controller.Instance[1].Softsend()); // send any queued softbutton messages before we close 
+        // juce::MessageManager::deleteInstance();
     }
 
     // Light or unlight the play state button
@@ -390,6 +392,7 @@ public:
 
                 if (widget.IsSurfaceItemWidget)
                 {
+
 					// if it's the active bank AND (it's either not a softbutton OR it is a softbutton but we're not showing racks/songs)
                     if (widget.BankID == Controller.Instance[1].Row[widget.RowNumber].ActiveBankID() && 
 						(!widget.IsSoftbutton() ||
@@ -399,6 +402,8 @@ public:
 //                        setWidgetValue(Controller.Instance[1].Row[widget.RowNumber].WidgetPrefix + "_active_" + widget.Column, newValue);
                         // setWidgetValue( widget.SurfacePrefix + "_" + widget.WidgetID + "_active_" + std::to_string(widget.Column), newValue);
                         DisplayWidgetValue(Controller.Instance[1].Row[widget.RowNumber], widget.Column, newValue);
+                        // scriptLog("MC: Heard widget: " + widgetName, 0);
+
                         if (widget.WidgetID == FADER_TAG) { DisplayText(widget.Column, 2, widget.TextValue, 7); }
                         if (widget.WidgetID == KNOB_TAG) { DisplayText(widget.Column, 1, widget.TextValue, 7); }
                         // if (widget.WidgetID == SOFTBUTTON_TAG && !Controller.Instance[1].ShowRacksSongs) {
@@ -698,6 +703,8 @@ public:
         setActiveBank(FADER_ROW);
         DisplayFaders(Controller.Instance[1].Row[FADER_ROW]);
         
+        ClearVUs();
+        setActiveBank(VU_ROW);
         // scriptLog("Finishing OnRackspaceChanged.", 0);
 
         Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
@@ -719,6 +726,7 @@ public:
         setActiveBank(FADER_ROW);
         DisplayFaders(Controller.Instance[1].Row[FADER_ROW]);
         // scriptLog("Finishing OnVariationChanged.", 1);
+        setActiveBank(VU_ROW);
         Controller.Instance[1].reportWidgetChanges = Controller.Instance[1].reportWidgetMode;
 
         // DisplayModeButtons();

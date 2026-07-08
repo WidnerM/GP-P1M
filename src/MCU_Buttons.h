@@ -162,3 +162,5 @@
 #define SID_FADER_TOUCH_SENSE_CH7  0x6e
 #define SID_FADER_TOUCH_SENSE_CH8  0x6f
 #define SID_FADER_TOUCH_SENSE_MASTER  0x70
+
+#define SID_VU_BASE  0xd0  // VU meters start here - 8 channels, values 0-0x0c

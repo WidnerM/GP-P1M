@@ -40,6 +40,19 @@ void LibMain::ClearMCUDisplay(uint8_t row)
     }
 }
 
+void LibMain::ClearVUs()
+{
+    uint8_t x;
+    uint8_t MidiMessage[2];
+
+    MidiMessage[0] = 0xd0;  // VU meter command, channel aftertouch
+    for (x = 0; x <= 7; x++) {
+        MidiMessage[1] = (uint8_t)(x << 4);
+        // sendMidiMessage(MidiMessage, sizeof(MidiMessage));
+        sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeMidiMessage(0xd0, (uint8_t)(x << 4)));
+    }
+}
+
 void LibMain::CleanMCU()
 {
     int x, y;
@@ -73,6 +86,7 @@ void LibMain::CleanMCU()
     for (x = 0; x <= 7; x++) {
         sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeSysexMessage(gigperformer::sdk::GPUtils::hex2binaryString(MCU_CLEAR_VU + (std::string)"0" +
         std::to_string(x) + "00 F7")));
+        sendMidiMessage(gigperformer::sdk::GPMidiMessage::makeAftertouchMessage(x << 4, 0));  // clear each VU
     }
 
 }
@@ -197,6 +211,13 @@ void LibMain::DisplayWidgetValue(SurfaceRow Row, uint8_t column, double value)
     {
         MidiMessage[1] = KNOBRING_0 + (column & 0x0F);
         MidiMessage[2] = KnobRingValue(column) + KnobDotValue(column);
+    }
+    else if (Row.Type == VU_TYPE)
+    {
+        MidiMessage[1] = (column << 4) + ((uint8_t)(value * 12) & 0x0f);
+		// scriptLog("VU Meter Message: " + std::to_string(MidiMessage[1]), 0);
+        sendMidiMessage(MidiMessage, 2);
+        return;
     }
     sendMidiMessage(MidiMessage, sizeof(MidiMessage));
 }
