@@ -267,6 +267,11 @@ public:
             // LightButtonsForRow(Controller.Instance[1].Row[0], 0, 8);
             // DisplayModeButtons();
         }
+        else if (status == GPStatus_SongListModifed || status == GPStatus_RackspaceListModified || status == GPStatus_SongPartListModified
+            || status == GPStatus_VariationListModified)
+        {
+			OnRackspaceActivated();  // will move faders, light buttons, set display.
+        }
     }
 
     // On closing GP, clear the MCU display and button LEDs

@@ -88,7 +88,7 @@ void LibMain::InvokeMenu(int index)
         //    break;
 
         case 0:
-            // OnStatusChanged(GPStatus_GigFinishedLoading);
+            OnStatusChanged(GPStatus_GigFinishedLoading);
             // setWidgetBounds("BoundsWidget", 10, 10, 100, 100);
             Controller.Instance[1].SoftbuttonArray.Initialize();
             // SendSoftbuttons(1, 80);
